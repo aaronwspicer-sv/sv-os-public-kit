@@ -150,7 +150,7 @@ Be brutal. The default is pass.`,
     id: "/thumb",
     description: "Critique the attached thumbnail (paste/upload image first)",
     preferredModel: "gpt-4o",
-    expand: () => `Critique the attached thumbnail through the SpicerVisions lens.
+    expand: () => `Critique the attached thumbnail through a sharp, high-retention YouTube lens.
 
 Score 1–10 on each:
 1. STOPPING POWER — would I scroll past it?

@@ -3,6 +3,7 @@ import { requireOwner } from "@/lib/auth";
 import * as OTPAuth from "otpauth";
 import QRCode from "qrcode";
 import { encryptToken, decryptToken } from "@/lib/crypto";
+import { config } from "@/config";
 
 export async function GET() {
   try {
@@ -25,7 +26,7 @@ export async function GET() {
     const secret = new OTPAuth.Secret({ size: 20 });
 
     const totp = new OTPAuth.TOTP({
-      issuer: "Spicer OS",
+      issuer: config.brand.shortName,
       label: user.email ?? "user",
       algorithm: "SHA1",
       digits: 6,
@@ -74,7 +75,7 @@ export async function POST(req: NextRequest) {
 
     const secretBase32 = decryptToken(record.secret_enc);
     const totp = new OTPAuth.TOTP({
-      issuer: "Spicer OS",
+      issuer: config.brand.shortName,
       label: user.email ?? "user",
       algorithm: "SHA1",
       digits: 6,

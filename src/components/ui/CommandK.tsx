@@ -8,6 +8,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/ToastProvider";
 import { getActiveDateString, getTomorrowDateString } from "@/lib/utils";
+import { config } from "@/config";
 
 type CommandKind = "navigate" | "input" | "textarea";
 
@@ -355,7 +356,7 @@ export function CommandK() {
           <span><kbd className="font-mono">↑↓</kbd> nav</span>
           <span><kbd className="font-mono">↵</kbd> select</span>
           <span><kbd className="font-mono">esc</kbd> close</span>
-          <span className="ml-auto text-text-3">Spicer OS Cmd+K</span>
+          <span className="ml-auto text-text-3">{config.brand.shortName} Cmd+K</span>
         </div>
       </div>
     </div>

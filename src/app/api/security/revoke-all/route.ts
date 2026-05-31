@@ -44,7 +44,7 @@ export async function POST() {
       await resend.emails.send({
         from: config.brand.emailFrom,
         to:   user.email ?? config.owner.alertEmail,
-        subject: "🚨 Break-glass revoke triggered on Spicer OS",
+        subject: `🚨 Break-glass revoke triggered on ${config.brand.shortName}`,
         html: `
           <div style="font-family: monospace; background:#0a0a0a; color:#e0e0e0; padding:24px; border-radius:8px; max-width:600px;">
             <h2 style="color:#ef4444; margin:0 0 16px;">🚨 ALL SESSIONS REVOKED</h2>

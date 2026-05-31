@@ -37,7 +37,7 @@ export default function GlobalError({
           </h1>
           <p style={{ fontSize: 13, color: "#a1a1aa", lineHeight: 1.55, margin: "0 0 20px" }}>
             The OS hit something it didn't know how to handle. The error has been
-            captured — Aaron will see it in Sentry. Try reloading.
+            logged. Try reloading.
           </p>
           {error.digest && (
             <p style={{ fontSize: 10, color: "#6b7280", fontFamily: "monospace", margin: "0 0 16px" }}>

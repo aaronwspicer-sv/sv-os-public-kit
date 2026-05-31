@@ -10,6 +10,7 @@ import Link from "next/link";
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { config } from "@/config";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { CheckCircle, AlertCircle, RefreshCw, ChevronLeft, Clock, AlertTriangle } from "lucide-react";
 
@@ -231,7 +232,7 @@ function PwaHint() {
         </div>
         <div className="px-3 py-2 rounded-[10px] bg-[rgba(255,255,255,0.02)] border border-border-dim">
           <p className="font-600 text-text-2 mb-1">Desktop (Chrome / Edge)</p>
-          Click the install icon in the address bar (⊕) — or three-dot menu → Install Spicer OS
+          Click the install icon in the address bar (⊕) — or three-dot menu → Install {config.brand.shortName}
         </div>
       </div>
     </Card>

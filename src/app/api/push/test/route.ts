@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireOwner } from "@/lib/auth";
 import { sendPushToUser } from "@/lib/push";
+import { config } from "@/config";
 
 // POST — send a test notification to the current user (all devices).
 export async function POST() {
@@ -10,7 +11,7 @@ export async function POST() {
 
   try {
     const result = await sendPushToUser(user.id, {
-      title: "🔔 Spicer OS test",
+      title: `🔔 ${config.brand.shortName} test`,
       body:  "Notifications are working — fire away.",
       url:   "/d/settings",
       tag:   "test",

@@ -189,7 +189,7 @@ export function renderMorningBrief(opts: {
     <div style="font-size:13px;color:${TEXT_2};">📺 ${esc(pipelineStr)}</div>
 
     <div style="margin-top:28px;text-align:center;">
-      <a href="${APP_URL}/d" style="display:inline-block;padding:12px 22px;border-radius:12px;background:linear-gradient(180deg,#3eb0ff,#1d9bf0);color:#000;font-weight:700;text-decoration:none;font-size:13px;">Open Spicer OS →</a>
+      <a href="${APP_URL}/d" style="display:inline-block;padding:12px 22px;border-radius:12px;background:linear-gradient(180deg,#3eb0ff,#1d9bf0);color:#000;font-weight:700;text-decoration:none;font-size:13px;">Open ${config.brand.shortName} →</a>
     </div>`;
 
   const preheader = `${hero.emoji} ${hero.text}`;

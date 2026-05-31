@@ -70,8 +70,8 @@ const b64 = (bytes: number) => randomBytes(bytes).toString("base64");
 
   // ── Identity & brand ──
   section("You & your brand");
-  const ownerName = await ask("Your first name", "Aaron");
-  const ownerFull = await ask("Your full name", `${ownerName} Spicer`);
+  const ownerName = await ask("Your first name");
+  const ownerFull = await ask("Your full name", ownerName);
   const ownerEmail = await ask("Your email (alerts + briefs go here)");
   const brandName = await ask("Brand / product name", "My Life OS");
   const brandShort = await ask("Short brand name", brandName);

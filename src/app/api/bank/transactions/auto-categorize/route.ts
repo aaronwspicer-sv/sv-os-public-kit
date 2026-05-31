@@ -124,7 +124,7 @@ transactionType: "Expense" (negative amount, money out), "Income" (positive, ear
 businessPct: 0 by default. Set to 100 ONLY for clearly business expenses (Software, Gear, Props, Client work, business subscriptions). Mixed-use? 50.
 
 confidence:
-- "high" = you are confident enough that this can be auto-written to the Notion Ledger without Aaron reviewing it. Common merchants (Loblaws, Tim Hortons, Spotify, Wealthsimple, Amazon for gear, etiology obvious from description) = high.
+- "high" = you are confident enough that this can be auto-written to the Notion Ledger without manual review. Common merchants (Loblaws, Tim Hortons, Spotify, Wealthsimple, Amazon for gear, etiology obvious from description) = high.
 - "low" = unclear, ambiguous merchant, transfer of uncertain destination, unfamiliar name, OR the amount is over $500 (always flag big-ticket items for human review).
 
 Return ONLY a JSON object: { "rows": [ { "id": "...", "category": "...", "transactionType": "...", "businessPct": 0, "confidence": "high|low", "reason": "1 short clause" }, ... ] }

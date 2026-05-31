@@ -4,6 +4,7 @@
 import { notFound } from "next/navigation";
 import { fetchPublicProfile, computePublicStats } from "@/lib/publicProfile";
 import { ACHIEVEMENTS } from "@/lib/achievements";
+import { config } from "@/config";
 import type { Metadata } from "next";
 
 export const revalidate = 300;
@@ -173,7 +174,7 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
 
         <footer className="pt-6 pb-2 text-center">
           <p className="text-[10px] text-text-3 tracking-[0.18em] uppercase">
-            Powered by <span className="text-accent">SpicerVisions OS</span>
+            Powered by <span className="text-accent">{config.brand.name}</span>
           </p>
         </footer>
       </div>

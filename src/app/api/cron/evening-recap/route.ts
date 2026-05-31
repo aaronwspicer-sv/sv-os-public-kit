@@ -38,7 +38,7 @@ function renderAlfredReviewEmail(name: string, review: string): { subject: strin
           </div>
         </td></tr>
       </table>
-      <div style="margin-top:14px;font-size:10px;color:#6b7280;letter-spacing:1px;text-transform:uppercase;">SpicerVisions OS · Alfred</div>
+      <div style="margin-top:14px;font-size:10px;color:#6b7280;letter-spacing:1px;text-transform:uppercase;">${config.brand.name} · Alfred</div>
     </td></tr>
   </table>
 </body></html>`;

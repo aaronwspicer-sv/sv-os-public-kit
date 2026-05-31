@@ -12,6 +12,7 @@ import { IdleLockSetting } from "@/components/settings/IdleLockSetting";
 import { SessionsPanel } from "@/components/settings/SessionsPanel";
 import { BriefingPreview } from "@/components/settings/BriefingPreview";
 import { ReconcileReminder } from "@/components/settings/ReconcileReminder";
+import { config } from "@/config";
 import { PublicProfileSettings } from "@/components/settings/PublicProfileSettings";
 import { SvGptEditor } from "@/components/settings/SvGptEditor";
 import { AlfredMemories } from "@/components/settings/AlfredMemories";
@@ -116,7 +117,7 @@ export default function SettingsPage() {
             </div>
             <div>
               <p className="text-[14px] font-600 text-text-1">Account Security</p>
-              <p className="text-[11px] text-text-3">Spicer OS uses 3-factor protection</p>
+              <p className="text-[11px] text-text-3">{config.brand.shortName} uses 3-factor protection</p>
             </div>
           </div>
           <div className="grid grid-cols-3 gap-2">

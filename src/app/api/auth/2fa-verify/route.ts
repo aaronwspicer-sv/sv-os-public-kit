@@ -3,6 +3,7 @@ import { requireOwner } from "@/lib/auth";
 import { markTwoFaCleared } from "@/lib/twofa";
 import { decryptToken } from "@/lib/crypto";
 import { checkRateLimit } from "@/lib/rateLimit";
+import { config } from "@/config";
 import * as OTPAuth from "otpauth";
 
 // POST /api/auth/2fa-verify { token: "123456" }
@@ -51,7 +52,7 @@ export async function POST(req: NextRequest) {
 
   const secretBase32 = decryptToken(record.secret_enc);
   const totp = new OTPAuth.TOTP({
-    issuer: "Spicer OS",
+    issuer: config.brand.shortName,
     label: user.email ?? "user",
     algorithm: "SHA1",
     digits: 6,

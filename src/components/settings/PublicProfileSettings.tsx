@@ -121,12 +121,12 @@ export function PublicProfileSettings() {
 
       <Field label="Slug (URL)" hint="a–z, 0–9, _, -">
         <input value={form.slug} onChange={e => set("slug", e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, ""))}
-          placeholder="aaron" className="w-full px-3 py-2 font-mono" maxLength={40} />
+          placeholder="yourhandle" className="w-full px-3 py-2 font-mono" maxLength={40} />
       </Field>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Field label="Display name">
-          <input value={form.display_name} onChange={e => set("display_name", e.target.value)} placeholder="Aaron Spicer" className="w-full px-3 py-2" maxLength={80} />
+          <input value={form.display_name} onChange={e => set("display_name", e.target.value)} placeholder="Your Name" className="w-full px-3 py-2" maxLength={80} />
         </Field>
         <Field label="Title">
           <input value={form.title} onChange={e => set("title", e.target.value)} placeholder="Founder, Creator" className="w-full px-3 py-2" maxLength={80} />

@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import { Lock, Delete, ArrowRight } from "lucide-react";
+import { config } from "@/config";
 
 const SESSION_KEY = "spicer_os_pin_unlocked";
 const TIMEOUT_MS  = 10 * 60 * 1000; // 10 minutes
@@ -28,7 +29,7 @@ interface PinGateProps {
   label?: string;
 }
 
-export function PinGate({ children, label = "Spicer OS" }: PinGateProps) {
+export function PinGate({ children, label = config.brand.shortName }: PinGateProps) {
   const [unlocked, setUnlocked] = useState<boolean>(() => isUnlocked());
   const [checked, setChecked]   = useState(false);
   const [pin, setPin]           = useState("");

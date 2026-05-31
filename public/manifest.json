@@ -1,7 +1,7 @@
 {
-  "name": "SpicerVisions OS",
-  "short_name": "SpicerVisions OS",
-  "description": "Aaron's personal life operating system",
+  "name": "My Life OS",
+  "short_name": "My Life OS",
+  "description": "A personal life operating system",
   "start_url": "/d",
   "scope": "/",
   "display": "standalone",

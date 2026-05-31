@@ -2,6 +2,7 @@
 import { ImageResponse } from "next/og";
 import { fetchPublicProfile, computePublicStats } from "@/lib/publicProfile";
 import { ACHIEVEMENTS } from "@/lib/achievements";
+import { config } from "@/config";
 
 export const runtime = "nodejs"; // we use the Notion + service-role clients
 export const alt = "Character sheet";
@@ -62,8 +63,8 @@ export default async function OG({ params }: { params: Promise<{ slug: string }>
         </div>
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 24, color: "#6b7280", fontSize: 16, letterSpacing: 3, textTransform: "uppercase" }}>
-          <span>spicervisions.online/u/{profile.slug}</span>
-          <span style={{ color: "#1d9bf0" }}>SpicerVisions OS</span>
+          <span>{config.brand.domain}/u/{profile.slug}</span>
+          <span style={{ color: "#1d9bf0" }}>{config.brand.name}</span>
         </div>
       </div>
     ),

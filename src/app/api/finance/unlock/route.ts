@@ -112,7 +112,7 @@ export async function POST(req: NextRequest) {
 
   const totpSecret = decryptToken(totpRec.secret_enc);
   const otp = new OTPAuth.TOTP({
-    issuer: "Spicer OS", label: user.email ?? "user",
+    issuer: config.brand.shortName, label: user.email ?? "user",
     algorithm: "SHA1", digits: 6, period: 30,
     secret: OTPAuth.Secret.fromBase32(totpSecret),
   });

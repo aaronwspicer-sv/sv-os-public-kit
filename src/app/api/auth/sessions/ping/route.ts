@@ -96,7 +96,7 @@ export async function POST(req: NextRequest) {
     resend.emails.send({
       from: config.brand.emailFrom,
       to:   ALERT_EMAIL,
-      subject: `🔔 New device on Spicer OS · ${label}`,
+      subject: `🔔 New device on ${config.brand.shortName} · ${label}`,
       html: `<div style="font-family:monospace;background:#0a0a0a;color:#e0e0e0;padding:24px;border-radius:8px;max-width:600px;">
         <h2 style="color:#a78bfa;margin:0 0 16px;">🔔 New device signed in</h2>
         <p>Device: ${label}</p>

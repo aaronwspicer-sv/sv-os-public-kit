@@ -50,7 +50,7 @@ export async function POST() {
       resend.emails.send({
         from: config.brand.emailFrom,
         to:   ALERT_EMAIL,
-        subject: "🚨 AUDIT LOG INTEGRITY BROKEN — Spicer OS",
+        subject: `🚨 AUDIT LOG INTEGRITY BROKEN — ${config.brand.shortName}`,
         html: `<div style="font-family:monospace;background:#0a0a0a;color:#ef4444;padding:24px;border-radius:8px;max-width:600px;">
           <h2 style="color:#ef4444;margin:0 0 16px;">🚨 Audit Log Tampered</h2>
           <p><strong>Reason:</strong> ${reason}</p>

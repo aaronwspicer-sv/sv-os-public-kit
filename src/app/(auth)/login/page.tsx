@@ -129,7 +129,7 @@ export default function LoginPage() {
           </div>
           <div>
             <h1 className="text-[26px] font-700 tracking-tight text-text-1">
-              SpicerVisions<span className="text-accent"> OS</span>
+              {config.brand.name}
             </h1>
             <p className="text-text-3 text-[12px] mt-0.5 uppercase tracking-[0.28em]">{config.brand.tagline}</p>
           </div>

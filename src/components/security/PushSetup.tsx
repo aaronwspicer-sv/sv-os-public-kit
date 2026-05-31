@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Bell, BellOff, Send } from "lucide-react";
 import { useToast } from "@/components/ui/ToastProvider";
+import { config } from "@/config";
 
 type State = "unsupported" | "denied" | "unsubscribed" | "subscribed";
 
@@ -164,7 +165,7 @@ export function PushSetup() {
       <Card className="flex flex-col items-center gap-3 py-6 text-center">
         <BellOff size={20} className="text-text-3" />
         <p className="text-[13px] text-text-2">Push notifications aren't supported in this browser.</p>
-        <p className="text-[11px] text-text-3">On iOS, install Spicer OS to your Home Screen first, then re-open.</p>
+        <p className="text-[11px] text-text-3">On iOS, install {config.brand.shortName} to your Home Screen first, then re-open.</p>
       </Card>
     );
   }
@@ -175,7 +176,7 @@ export function PushSetup() {
         <BellOff size={20} className="text-danger" />
         <p className="text-[13px] text-text-2">Notifications blocked at the browser/OS level.</p>
         <p className="text-[11px] text-text-3">
-          Re-enable in your device settings: <span className="text-text-2">Settings → Notifications → Spicer OS → Allow</span>
+          Re-enable in your device settings: <span className="text-text-2">Settings → Notifications → {config.brand.shortName} → Allow</span>
         </p>
       </Card>
     );

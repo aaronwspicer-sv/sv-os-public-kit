@@ -40,7 +40,7 @@ export function Sidebar() {
       <div className="px-5 py-4 border-b border-border-dim flex items-center gap-2.5">
         <SvMark size={28} />
         <span className="text-[13px] font-700 tracking-tight text-text-1 leading-tight">
-          SpicerVisions<br /><span className="text-accent text-[11px] font-600">OS</span>
+          {config.brand.name}
         </span>
       </div>
 
