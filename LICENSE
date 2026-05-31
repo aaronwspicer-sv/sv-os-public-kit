@@ -1,0 +1,47 @@
+Spicer OS — Self-Host License
+Copyright (c) 2026 Aaron Spicer / SpicerVisions
+
+This is a source-available, single-seat license. It is NOT open source.
+
+1. GRANT
+   On obtaining a copy through an official channel, you (the "Licensee") are
+   granted a personal, non-exclusive, non-transferable license to:
+   a. Use and run the software for your own personal or business purposes.
+   b. Deploy it to any number of environments that you yourself own.
+   c. Modify the source code for your own use.
+
+2. RESTRICTIONS
+   You may NOT:
+   a. Resell, sublicense, rent, lease, or otherwise distribute the software
+      or any substantial portion of its source code, modified or not.
+   b. Redistribute it for free or share your copy. Each user must obtain
+      their own license.
+   c. Use it to build or operate a competing product offered to third
+      parties (e.g. a hosted "life OS" SaaS built on this code).
+   d. Remove or obscure this license or the copyright notice.
+
+3. OWNERSHIP
+   The software is licensed, not sold. All intellectual property rights
+   remain with the copyright holder.
+
+4. THIRD-PARTY SERVICES
+   The software integrates third-party services (Supabase, Notion, OpenAI,
+   Resend, Vercel, and others). You are solely responsible for your accounts,
+   API keys, costs, data, and compliance with those services' terms. Your
+   data lives in your own infrastructure; the author has no access to it.
+
+5. NO WARRANTY
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT.
+
+6. LIMITATION OF LIABILITY
+   IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY CLAIM, DAMAGES, DATA LOSS,
+   FINANCIAL LOSS, OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT,
+   OR OTHERWISE, ARISING FROM, OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR
+   ITS USE. The Licensee assumes all risk, including for the security of their
+   own deployment, secrets, and financial data.
+
+7. TERMINATION
+   This license terminates automatically if you breach its terms. On
+   termination you must cease use and delete all copies.
