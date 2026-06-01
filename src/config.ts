@@ -50,8 +50,13 @@ export const config = {
     tagline: process.env.NEXT_PUBLIC_BRAND_TAGLINE ?? "Personal Life System",
     /** Bare domain (no protocol) — emails, OG image URLs. */
     domain: process.env.NEXT_PUBLIC_APP_DOMAIN ?? "example.com",
-    /** Full canonical URL with protocol — links in emails. */
-    appUrl: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
+    /** Full canonical URL with protocol — links in emails. Falls back to the
+     *  configured domain so email/notification links never point at localhost
+     *  (or someone else's domain) just because APP_URL wasn't set explicitly. */
+    appUrl: process.env.NEXT_PUBLIC_APP_URL
+      ?? (process.env.NEXT_PUBLIC_APP_DOMAIN
+        ? `https://${process.env.NEXT_PUBLIC_APP_DOMAIN}`
+        : "http://localhost:3000"),
     /** From-address for transactional email. Server-only. */
     emailFrom: process.env.EMAIL_FROM ?? "My Life OS <onboarding@resend.dev>",
   },
