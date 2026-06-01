@@ -258,7 +258,7 @@ function AgendaCard({
 
       {/* Today's log status mini-row (only for today card) */}
       {isToday && logLoaded && (
-        <Link href="/d/log" className="-mx-1">
+        <Link href="/d/entry" className="-mx-1">
           <div className="flex items-center gap-2 px-3 py-2 rounded-[10px] bg-[rgba(255,255,255,0.02)] border border-border-dim hover:border-[rgba(29,155,240,0.25)] transition-all">
             <BookOpen size={13} className="text-accent flex-shrink-0" />
             <span className="text-[11px] text-text-2 flex-1">

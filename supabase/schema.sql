@@ -507,7 +507,7 @@ create extension if not exists vector with schema extensions;
 create table if not exists public.alfred_memories (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
-  kind text not null check (kind in ('explicit','conversation_summary','pattern','fact')),
+  kind text not null check (kind in ('explicit','conversation_summary','pattern','fact','decision','preference','commitment','to-revisit')),
   content text not null,
   embedding extensions.vector(1536),
   importance smallint not null default 5 check (importance between 1 and 10),

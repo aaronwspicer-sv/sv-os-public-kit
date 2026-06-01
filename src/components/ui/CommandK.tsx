@@ -3,8 +3,9 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   Search, Target, BookOpen, DollarSign, Video, Calendar, Settings,
-  Home, Sparkles, ArrowRight, MessageSquare, Film,
+  Home, Sparkles, ArrowRight, MessageSquare, Film, CheckSquare, Brain, CreditCard, Package,
 } from "lucide-react";
+import type { SearchResult } from "@/app/api/search/route";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/ToastProvider";
 import { getActiveDateString, getTomorrowDateString } from "@/lib/utils";
@@ -26,6 +27,13 @@ interface Cmd {
   onSubmit?: (value: string) => Promise<void>;
 }
 
+const KIND_ICON: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
+  todo:        CheckSquare,
+  memory:      Brain,
+  transaction: CreditCard,
+  asset:       Package,
+};
+
 export function CommandK() {
   const [open, setOpen]               = useState(false);
   const [query, setQuery]             = useState("");
@@ -33,6 +41,9 @@ export function CommandK() {
   const [input, setInput]             = useState("");
   const [submitting, setSubmitting]   = useState(false);
   const [hover, setHover]             = useState(0);
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [searching, setSearching]         = useState(false);
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const router = useRouter();
   const toast = useToast();
   const inputRef    = useRef<HTMLInputElement>(null);
@@ -138,8 +149,8 @@ export function CommandK() {
     { id: "nav-year",     kind: "navigate", icon: Calendar,   label: "Year stats",     href: "/d/year" },
     { id: "nav-home",     kind: "navigate", icon: Home,       label: "Go to Home",     href: "/d" },
     { id: "nav-goals",    kind: "navigate", icon: Target,     label: "Go to Goals",    href: "/d/goals" },
-    { id: "nav-log",      kind: "navigate", icon: BookOpen,   label: "Go to Daily Log",href: "/d/log" },
-    { id: "nav-history",  kind: "navigate", icon: BookOpen,   label: "Open log history", href: "/d/log/history" },
+    { id: "nav-log",      kind: "navigate", icon: BookOpen,   label: "Go to Daily Entry", href: "/d/entry" },
+    { id: "nav-history",  kind: "navigate", icon: BookOpen,   label: "Entry history",     href: "/d/entry/history" },
     { id: "nav-finances", kind: "navigate", icon: DollarSign, label: "Go to Finances", href: "/d/finances" },
     { id: "nav-content",  kind: "navigate", icon: Video,      label: "Go to Content",  href: "/d/content" },
     { id: "nav-calendar", kind: "navigate", icon: Calendar,   label: "Go to Calendar", href: "/d/calendar" },
@@ -150,6 +161,25 @@ export function CommandK() {
   const filtered = !active
     ? COMMANDS.filter(c => c.label.toLowerCase().includes(query.toLowerCase().trim()))
     : [];
+
+  const showSearch = !active && query.trim().length >= 3 && filtered.length === 0;
+
+  // Debounced live search
+  useEffect(() => {
+    if (!showSearch) { setSearchResults([]); return; }
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    searchTimerRef.current = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const r = await fetch(`/api/search?q=${encodeURIComponent(query.trim())}`);
+        const d = await r.json();
+        setSearchResults(d.results ?? []);
+      } catch { setSearchResults([]); }
+      finally { setSearching(false); }
+    }, 300);
+    return () => { if (searchTimerRef.current) clearTimeout(searchTimerRef.current); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query, showSearch]);
 
   // Keep hover in range
   useEffect(() => { setHover(0); }, [query]);
@@ -273,7 +303,7 @@ export function CommandK() {
                 value={query}
                 onChange={e => setQuery(e.target.value)}
                 onKeyDown={onListKey}
-                placeholder="Search commands…"
+                placeholder="Search commands or data…"
                 className="flex-1 bg-transparent border-none outline-none focus:ring-0 text-[14px] text-text-1 placeholder:text-text-3 p-0"
                 style={{ boxShadow: "none" }}
               />
@@ -326,7 +356,41 @@ export function CommandK() {
           </div>
         ) : (
           <div className="max-h-[50vh] overflow-y-auto p-1.5">
-            {filtered.length === 0 ? (
+            {showSearch ? (
+              searching ? (
+                <div className="px-4 py-8 text-center text-[12px] text-text-3">Searching…</div>
+              ) : searchResults.length === 0 ? (
+                <div className="px-4 py-8 text-center text-[12px] text-text-3 flex flex-col items-center gap-2">
+                  <Search size={16} className="text-text-3" />
+                  No results for &ldquo;{query}&rdquo;
+                </div>
+              ) : (
+                <>
+                  <p className="px-3 py-1 text-[10px] uppercase tracking-widest text-text-3 font-600">Search results</p>
+                  {searchResults.map((r, i) => {
+                    const Icon = KIND_ICON[r.kind] ?? Search;
+                    return (
+                      <button
+                        key={r.id}
+                        onClick={() => { if (r.href) { router.push(r.href); close(); } }}
+                        onMouseEnter={() => setHover(i)}
+                        className={cn(
+                          "w-full flex items-center gap-3 px-3 py-2.5 rounded-[10px] text-left transition-all duration-150",
+                          i === hover ? "bg-[rgba(29,155,240,0.10)] text-text-1" : "text-text-2 hover:bg-[rgba(255,255,255,0.03)]"
+                        )}
+                      >
+                        <Icon size={14} className={i === hover ? "text-accent" : "text-text-3"} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[13px] font-500 truncate">{r.label}</p>
+                          {r.sub && <p className="text-[11px] text-text-3 truncate">{r.sub}</p>}
+                        </div>
+                        {r.href && <ArrowRight size={12} className="text-text-3" />}
+                      </button>
+                    );
+                  })}
+                </>
+              )
+            ) : filtered.length === 0 ? (
               <div className="px-4 py-8 text-center text-[12px] text-text-3 flex flex-col items-center gap-2">
                 <Sparkles size={16} className="text-text-3" />
                 No matching commands

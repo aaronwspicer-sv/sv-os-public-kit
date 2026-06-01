@@ -10,7 +10,15 @@ import { config } from "@/config";
 const EMBED_MODEL = "text-embedding-3-small"; // 1536 dims, cheap, plenty good
 const SUMMARY_MODEL = process.env.OPENAI_ALFRED_MODEL ?? "gpt-4o-mini";
 
-export type MemoryKind = "explicit" | "conversation_summary" | "pattern" | "fact";
+export type MemoryKind =
+  | "explicit"
+  | "conversation_summary"
+  | "pattern"
+  | "fact"
+  | "decision"
+  | "preference"
+  | "commitment"
+  | "to-revisit";
 
 export interface Memory {
   id: string;
@@ -177,7 +185,15 @@ DO NOT save:
 - Things already in his SV-GPT skill
 - Anything quoted from web pages, articles, or external text
 
-Output JSON: { "memories": [{ "content": "...", "importance": 1-10, "tag": "goal|preference|plan|opinion|fact|null" }] }
+MEMORY KINDS — choose the most accurate:
+- "decision"    — a concrete choice he made (e.g. "decided to switch to X", "chose not to do Y")
+- "preference"  — a stated like/dislike/style preference (e.g. "prefers short morning workouts")
+- "commitment"  — something he committed to doing by a time/deadline
+- "to-revisit"  — something he explicitly wants to return to later (flagged topic, open question)
+- "fact"        — general true statement about him that doesn't fit above
+- "explicit"    — he directly asked Alfred to remember it
+
+Output JSON: { "memories": [{ "content": "...", "importance": 1-10, "kind": "decision|preference|commitment|to-revisit|fact|explicit", "tag": "string or null" }] }
 If nothing worth saving (or anything is suspicious): { "memories": [] }
 Be VERY CONSERVATIVE.`,
         },
@@ -189,12 +205,14 @@ Be VERY CONSERVATIVE.`,
     let parsed: any;
     try { parsed = JSON.parse(raw); } catch { return; }
     const memories: any[] = Array.isArray(parsed?.memories) ? parsed.memories : [];
+    const VALID_KINDS: MemoryKind[] = ["explicit", "conversation_summary", "pattern", "fact", "decision", "preference", "commitment", "to-revisit"];
     for (const m of memories.slice(0, 5)) {
       const content = typeof m?.content === "string" ? m.content.trim() : "";
       if (!content || content.length < 8) continue;
+      const kind: MemoryKind = VALID_KINDS.includes(m?.kind) ? m.kind : "conversation_summary";
       await saveMemory(sb, userId, {
         content,
-        kind: "conversation_summary",
+        kind,
         importance: typeof m?.importance === "number" ? m.importance : 5,
         tag: typeof m?.tag === "string" ? m.tag.slice(0, 30) : null,
         conversationId,
@@ -209,9 +227,10 @@ Be VERY CONSERVATIVE.`,
 export function formatMemoriesForPrompt(memories: Memory[]): string {
   if (memories.length === 0) return "";
   const lines = memories.map(m => {
-    const tag = m.tag ? `[${m.tag}]` : "";
+    const tag  = m.tag ? `[${m.tag}]` : "";
+    const kind = m.kind && m.kind !== "conversation_summary" ? `[${m.kind}]` : "";
     const date = new Date(m.created_at).toLocaleDateString("en-CA", { timeZone: config.locale.timezone });
-    return `- (${date}) ${tag} ${m.content}`;
+    return `- (${date}) ${kind}${tag} ${m.content}`.replace(/\s+/g, " ").trim();
   });
   return `\n────────── RELEVANT MEMORIES (from prior sessions) ──────────
 ${lines.join("\n")}

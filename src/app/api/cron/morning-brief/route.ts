@@ -8,7 +8,7 @@ import { pickHero } from "@/lib/brief/hero";
 import { renderMorningBrief } from "@/lib/brief/render";
 import { sendPushToUser } from "@/lib/push";
 import { requireOwner } from "@/lib/auth";
-import { detectPatterns, generateMorningInsight } from "@/lib/alfred/autonomous";
+import { detectPatterns, generateMorningInsight, detectDeadTime } from "@/lib/alfred/autonomous";
 import { createClient } from "@supabase/supabase-js";
 import { torontoDayOfWeek } from "@/lib/torontoDay";
 import { startCronRun, getStaleCronJobs } from "@/lib/cronTelemetry";
@@ -137,6 +137,27 @@ async function run(req: NextRequest) {
     try {
       const data = await gatherUserData(uid);
       const patterns = detectPatterns(data);
+      const deadSlots = await detectDeadTime(sb, uid).catch(() => []);
+
+      // "On this day" — memories saved ~1 year ago (±7 days)
+      const onThisDay = await (async () => {
+        try {
+          const now = new Date();
+          const oneYearAgo = new Date(now);
+          oneYearAgo.setFullYear(now.getFullYear() - 1);
+          const from = new Date(oneYearAgo); from.setDate(from.getDate() - 7);
+          const to   = new Date(oneYearAgo); to.setDate(to.getDate() + 7);
+          const { data: rows } = await sb
+            .from("alfred_memories")
+            .select("content, kind, created_at")
+            .eq("user_id", uid)
+            .gte("created_at", from.toISOString())
+            .lte("created_at", to.toISOString())
+            .order("importance", { ascending: false })
+            .limit(3);
+          return (rows ?? []) as { content: string; kind: string; created_at: string }[];
+        } catch { return []; }
+      })();
       // Let Alfred override the static hero with a fresh per-day take
       const alfredInsight = await generateMorningInsight(uid);
       const hero = alfredInsight
@@ -144,10 +165,13 @@ async function run(req: NextRequest) {
         : pickHero(data);
       // Append top 3 patterns into the hero line if there are urgent ones
       const urgentPatterns = patterns.filter(p => p.severity === "alert" || p.severity === "warn").slice(0, 3);
-      const heroWithPatterns = urgentPatterns.length > 0
-        ? { ...hero, text: `${hero.text}\n\n${urgentPatterns.map(p => `${p.emoji} ${p.text}`).join("  ·  ")}` }
+      const deadTimeLine = deadSlots.length > 0
+        ? `\n\n🕐 Open blocks today: ${deadSlots.map(s => s.label).join("  ·  ")}`
+        : "";
+      const heroWithPatterns = urgentPatterns.length > 0 || deadSlots.length > 0
+        ? { ...hero, text: `${hero.text}\n\n${urgentPatterns.map(p => `${p.emoji} ${p.text}`).join("  ·  ")}${deadTimeLine}`.trim() }
         : hero;
-      const { subject, html } = renderMorningBrief({ name: OWNER_NAME, hero: heroWithPatterns, data, sources });
+      const { subject, html } = renderMorningBrief({ name: OWNER_NAME, hero: heroWithPatterns, data, sources, alfredMemories: onThisDay });
 
       await resend.emails.send({
         from: config.brand.emailFrom,

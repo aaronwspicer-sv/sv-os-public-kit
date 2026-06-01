@@ -91,8 +91,9 @@ export function renderMorningBrief(opts: {
   hero: Hero;
   data: UserBriefData;
   sources: Sources;
+  alfredMemories?: { content: string; kind: string; created_at: string }[];
 }): { subject: string; html: string } {
-  const { name, hero, data, sources } = opts;
+  const { name, hero, data, sources, alfredMemories } = opts;
   const { weather, headlines, markets, jays } = sources;
 
   const dateLabel = new Date().toLocaleDateString("en-CA", {
@@ -156,6 +157,13 @@ export function renderMorningBrief(opts: {
     ? `<div style="margin:8px 0;padding:12px 14px;background:rgba(167,139,250,0.06);border:1px solid rgba(167,139,250,0.22);border-radius:12px;color:${VIOLET};font-size:12px;">📅 <b>One year ago today</b> · ${[data.oneYearAgoLog.workout, data.oneYearAgoLog.nf, data.oneYearAgoLog.video, data.oneYearAgoLog.journal].filter(Boolean).length}/4 habits · ${data.oneYearAgoLog.hours.toFixed(1)}h${data.oneYearAgoLog.summary ? ` · "${esc(data.oneYearAgoLog.summary.slice(0, 80))}"` : ""}</div>`
     : "";
 
+  const alfredOnThisDay = (alfredMemories && alfredMemories.length > 0)
+    ? `<div style="margin:8px 0;padding:12px 14px;background:rgba(167,139,250,0.04);border:1px solid rgba(167,139,250,0.15);border-radius:12px;">
+        <div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:${VIOLET};margin-bottom:8px;">🧠 Alfred remembers — a year ago</div>
+        ${alfredMemories.slice(0, 3).map(m => `<div style="font-size:12px;color:${TEXT_2};padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.04);">${m.kind !== "conversation_summary" ? `<span style="color:${VIOLET};font-size:10px;text-transform:uppercase;letter-spacing:1px;">[${esc(m.kind)}]</span> ` : ""}${esc(m.content)}</div>`).join("")}
+       </div>`
+    : "";
+
   const pipelineStr = ["Idea", "Scripting", "Filming", "Editing"].map(s => `${s} ${data.videosPipeline[s] ?? 0}`).join(" · ");
 
   const body = `
@@ -179,6 +187,7 @@ export function renderMorningBrief(opts: {
 
     ${moneyPulse}
     ${onThisDay}
+    ${alfredOnThisDay}
 
     ${sectionTitle("In the world")}
     ${jaysHtml}
@@ -248,7 +257,7 @@ export function renderEveningRecap(opts: {
         <div style="font-size:16px;font-weight:600;color:${WARN};">No log entry yet today.</div>
         <div style="font-size:12px;color:${TEXT_2};margin-top:4px;">Take 90 seconds to log what happened — habits, hours, the headline. Future-you will thank present-you.</div>
         <div style="margin-top:14px;">
-          <a href="${APP_URL}/d/log" style="display:inline-block;padding:10px 18px;border-radius:10px;background:${WARN};color:#000;font-weight:700;text-decoration:none;font-size:12px;">Log today →</a>
+          <a href="${APP_URL}/d/entry" style="display:inline-block;padding:10px 18px;border-radius:10px;background:${WARN};color:#000;font-weight:700;text-decoration:none;font-size:12px;">Log today →</a>
         </div>
       </div>
     ` : `
@@ -280,7 +289,7 @@ export function renderEveningRecap(opts: {
     ` : ""}
 
     <div style="margin-top:28px;text-align:center;">
-      <a href="${APP_URL}/d/log" style="display:inline-block;padding:12px 22px;border-radius:12px;background:linear-gradient(180deg,#3eb0ff,#1d9bf0);color:#000;font-weight:700;text-decoration:none;font-size:13px;">${noLog ? "Log today" : "Edit today's log"} →</a>
+      <a href="${APP_URL}/d/entry" style="display:inline-block;padding:12px 22px;border-radius:12px;background:linear-gradient(180deg,#3eb0ff,#1d9bf0);color:#000;font-weight:700;text-decoration:none;font-size:13px;">${noLog ? "Log today" : "Edit today's log"} →</a>
     </div>`;
 
   const preheader = noLog

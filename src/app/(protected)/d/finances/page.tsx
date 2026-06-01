@@ -7,6 +7,9 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { formatMoney } from "@/lib/money";
+import { useDemoMode } from "@/components/ui/DemoModeContext";
+import { NetWorthChart } from "@/components/finance/NetWorthChart";
+import { LifeSimCard } from "@/components/finance/LifeSimCard";
 import {
   DollarSign, TrendingUp, TrendingDown, AlertTriangle,
   Plus, Link as LinkIcon, RefreshCw, Trash2, X, Unlink,
@@ -146,7 +149,8 @@ function FinancesOnboarding({ onSuccess }: { onSuccess: () => void }) {
 
 // ── Main page ───────────────────────────────────────────────────
 export default function FinancesPage() {
-  const [tab, setTab] = useState<"overview"|"transactions"|"wealth">("overview");
+  const { isDemoMode } = useDemoMode();
+  const [tab, setTab] = useState<"overview"|"transactions"|"wealth"|"tax">("overview");
 
   // Plaid data
   const [accounts, setAccounts]   = useState<PlaidAccount[]>([]);
@@ -189,6 +193,63 @@ export default function FinancesPage() {
   const [accountMap, setAccountMap] = useState<Record<string, string>>({});
   const [mappingPlaidId, setMappingPlaidId] = useState<string | null>(null); // which Plaid acct row has the link dropdown open
   const [mappingSaving, setMappingSaving] = useState(false);
+
+  // ── Demo mode: inject fake data so all UI is demonstrable ────
+  const now2 = new Date();
+  const thisMonth = `${now2.getFullYear()}-${String(now2.getMonth()+1).padStart(2,"0")}`;
+  useEffect(() => {
+    if (!isDemoMode) { fetchAll(); return; }
+    setIsLinked(true);
+    setInitialLoadDone(true);
+    setAccounts([
+      { id: "d1", name: "Main Chequing", type: "depository", category: "checking", balance: 8432.17, currency: "CAD", institution: "TD Bank" },
+      { id: "d2", name: "High-Interest Savings", type: "depository", category: "savings", balance: 22400.00, currency: "CAD", institution: "EQ Bank" },
+      { id: "d3", name: "Visa Credit Card", type: "credit", category: "credit_card", balance: -1240.55, currency: "CAD", institution: "TD Bank" },
+    ]);
+    setPlaidTotal(29591.62);
+    setNotionAccounts([
+      { id: "n1", notionPageId: "n1", name: "Main Chequing", type: "Bank", currency: "CAD", currentBalance: 8432.17, projectedBalance: 8432.17, pendingDelta: 0 },
+      { id: "n2", notionPageId: "n2", name: "High-Interest Savings", type: "Bank", currency: "CAD", currentBalance: 22400.00, projectedBalance: 22400.00, pendingDelta: 0 },
+      { id: "n3", notionPageId: "n3", name: "TFSA Index Funds", type: "Other", currency: "CAD", currentBalance: 12000.00, projectedBalance: 12000.00, pendingDelta: 0 },
+    ]);
+    setManualAssets([
+      { id: "m1", category: "crypto",  name: "Bitcoin",      amount_cad: 3200 },
+      { id: "m2", category: "stocks",  name: "Index Funds",  amount_cad: 9000 },
+      { id: "m3", category: "vehicle", name: "Vehicle",      amount_cad: 12000 },
+    ]);
+    setWishlist([
+      { id: "w1", name: "Sony A7C II",   amount_cad: 3200 },
+      { id: "w2", name: "Studio Desk",   amount_cad: 850 },
+      { id: "w3", name: "DJI Mic 2",     amount_cad: 380 },
+    ]);
+    setSubs([
+      { id: "s1", name: "Adobe Creative Cloud", monthlyCad: 89.99, amount: 89.99, frequency: "MONTHLY", nextDate: `${thisMonth}-15`, category: "Software", isActive: true },
+      { id: "s2", name: "Netflix",               monthlyCad: 20.99, amount: 20.99, frequency: "MONTHLY", nextDate: `${thisMonth}-22`, category: "Subscriptions", isActive: true },
+      { id: "s3", name: "Spotify",               monthlyCad: 12.99, amount: 12.99, frequency: "MONTHLY", nextDate: `${thisMonth}-08`, category: "Subscriptions", isActive: true },
+      { id: "s4", name: "YouTube Premium",       monthlyCad: 18.99, amount: 18.99, frequency: "MONTHLY", nextDate: `${thisMonth}-01`, category: "Subscriptions", isActive: true },
+    ]);
+    setIncome([
+      { id: "i1", name: "YouTube AdSense",  monthlyCad: 2400, frequency: "MONTHLY", nextDate: `${thisMonth}-21` },
+      { id: "i2", name: "Brand Deals",      monthlyCad: 1200, frequency: "MONTHLY", nextDate: null },
+      { id: "i3", name: "UGC Contracts",    monthlyCad: 800,  frequency: "MONTHLY", nextDate: null },
+    ]);
+    setMonthlyBurn(142.96);
+    setMonthlyIncome(4400);
+    setInbox([
+      { plaid_transaction_id: "t1", merchant_name: "Costco Wholesale",   amount: 247.83, date: `${thisMonth}-28`, suggested_category: "Food",          account_id: "d1" },
+      { plaid_transaction_id: "t2", merchant_name: "Shell Gas Station",   amount: 78.40,  date: `${thisMonth}-27`, suggested_category: "Transit",       account_id: "d1" },
+      { plaid_transaction_id: "t3", merchant_name: "Amazon.ca",           amount: 134.99, date: `${thisMonth}-26`, suggested_category: "Other Personal", account_id: "d3" },
+    ]);
+    setLedgerEntries([
+      { id: "le1", name: "YouTube AdSense",    amount: 2400, transactionType: "Income",  category: "UGC Payout",     status: "cleared", date: `${thisMonth}-21`, fromAccountId: null, toAccountId: "n1", businessUsePct: 0, currency: "CAD", notes: "" },
+      { id: "le2", name: "Brand Deal",         amount: 1200, transactionType: "Income",  category: "Client",         status: "cleared", date: `${thisMonth}-15`, fromAccountId: null, toAccountId: "n1", businessUsePct: 0, currency: "CAD", notes: "" },
+      { id: "le3", name: "Grocery Run",        amount: 247,  transactionType: "Expense", category: "Food",           status: "cleared", date: `${thisMonth}-28`, fromAccountId: "n1", toAccountId: null, businessUsePct: 0, currency: "CAD", notes: "" },
+      { id: "le4", name: "Adobe CC",           amount: 90,   transactionType: "Expense", category: "Software",       status: "cleared", date: `${thisMonth}-14`, fromAccountId: "n1", toAccountId: null, businessUsePct: 100, currency: "CAD", notes: "" },
+      { id: "le5", name: "Gas Fill-up",        amount: 78,   transactionType: "Expense", category: "Transit",        status: "cleared", date: `${thisMonth}-27`, fromAccountId: "n1", toAccountId: null, businessUsePct: 0, currency: "CAD", notes: "" },
+      { id: "le6", name: "Coffee & Meetings",  amount: 64,   transactionType: "Expense", category: "Food",           status: "cleared", date: `${thisMonth}-20`, fromAccountId: "n1", toAccountId: null, businessUsePct: 0, currency: "CAD", notes: "" },
+    ]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDemoMode]);
 
   const manualTotal = manualAssets.reduce((s, a) => s + Number(a.amount_cad), 0);
 
@@ -519,6 +580,7 @@ export default function FinancesPage() {
     { key: "overview",     label: "Overview",     badge: inbox.length > 0 ? inbox.length : null },
     { key: "transactions", label: "Transactions", badge: null },
     { key: "wealth",       label: "Wealth",       badge: null },
+    { key: "tax",          label: "Tax",          badge: null },
   ] as const;
 
   // Notion account name lookup (for showing "from" in transaction rows)
@@ -950,6 +1012,20 @@ export default function FinancesPage() {
             </button>
           )}
 
+          {/* Net Worth History Chart */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Net Worth History</CardTitle>
+              <Badge variant={netWorth >= 0 ? "success" : "danger"}>{fmt(netWorth)}</Badge>
+            </CardHeader>
+            <NetWorthChart
+              currentNetWorth={isDemoMode ? 47832 : netWorth}
+              breakdown={isDemoMode
+                ? { banks: 29591, manual: 24200, other: 0 }
+                : { banks: banksTotal, manual: manualTotal, other: notionOtherTotal }}
+            />
+          </Card>
+
           {/* Donut */}
           <Card>
             <CardHeader>
@@ -1141,6 +1217,60 @@ export default function FinancesPage() {
             </Card>
           </div>
 
+          {/* Runway Calculator */}
+          {(() => {
+            const spend = monthExpense > 0 ? monthExpense : (monthlyBurn > 0 ? monthlyBurn : 1);
+            const liquidMonths = banksTotal / spend;
+            const totalMonths  = netWorth   / spend;
+            const doomDate = new Date();
+            doomDate.setMonth(doomDate.getMonth() + Math.floor(liquidMonths));
+            const doomStr = doomDate.toLocaleDateString("en-CA", { month: "short", year: "numeric" });
+            const runColor = liquidMonths < 3 ? "#f87171" : liquidMonths < 6 ? "#fbbf24" : "#34d399";
+            const barPct = Math.min((liquidMonths / 24) * 100, 100);
+            return (
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[14px]">🕳️</span>
+                    <CardTitle>Runway</CardTitle>
+                  </div>
+                  <span className="text-[11px] text-text-3">liquid ÷ spend</span>
+                </CardHeader>
+                <div className="flex items-end gap-3 mb-3">
+                  <span className="text-[32px] font-700 tabular-nums font-mono" style={{ color: runColor }}>
+                    {liquidMonths >= 999 ? "∞" : liquidMonths.toFixed(1)}
+                  </span>
+                  <span className="text-[13px] text-text-3 mb-1">months of cash</span>
+                </div>
+                <div className="h-2 rounded-full bg-[rgba(255,255,255,0.05)] overflow-hidden mb-3">
+                  <div
+                    className="h-full rounded-full transition-all duration-700"
+                    style={{ width: `${barPct}%`, background: runColor, boxShadow: `0 0 8px ${runColor}60` }}
+                  />
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div>
+                    <p className="text-[11px] text-text-3">Monthly spend</p>
+                    <p className="text-[13px] font-700 tabular-nums font-mono text-danger">{fmt(spend)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] text-text-3">Liquid assets</p>
+                    <p className="text-[13px] font-700 tabular-nums font-mono text-text-1">{fmt(banksTotal)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] text-text-3">Cash-zero date</p>
+                    <p className="text-[13px] font-700 tabular-nums font-mono" style={{ color: runColor }}>{doomStr}</p>
+                  </div>
+                </div>
+                {totalMonths > liquidMonths && (
+                  <p className="text-[10px] text-text-3 mt-3 text-center">
+                    Total NW runway (illiquid incl.): {totalMonths.toFixed(1)} mo
+                  </p>
+                )}
+              </Card>
+            );
+          })()}
+
           {/* Subscriptions */}
           <Card>
             <CardHeader>
@@ -1244,6 +1374,21 @@ export default function FinancesPage() {
             </div>
           </Card>
 
+          {/* Life Simulation */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <span className="text-[14px]">🔮</span>
+                <CardTitle>Life Simulation</CardTitle>
+              </div>
+              <span className="text-[11px] text-text-3">Monte Carlo · 3 scenarios</span>
+            </CardHeader>
+            <LifeSimCard
+              netWorth={netWorth}
+              monthlySavings={monthlyIncome > 0 ? Math.max(0, monthlyIncome - (monthExpense > 0 ? monthExpense : monthlyBurn)) : 500}
+            />
+          </Card>
+
           {/* Wishlist */}
           <Card>
             <CardHeader>
@@ -1291,6 +1436,126 @@ export default function FinancesPage() {
           </Card>
         </div>
       )}
+
+      {tab === "tax" && (() => {
+        const year = new Date().getFullYear();
+        const yearStart = `${year}-01-01`;
+        const yearEntries = ledgerEntries.filter(e => e.date >= yearStart);
+        const ytdIncome  = yearEntries.filter(e => e.transactionType === "Income").reduce((s, e) => s + Number(e.amount), 0);
+        const ytdExpense = yearEntries.filter(e => e.transactionType === "Expense").reduce((s, e) => s + Number(e.amount), 0);
+        const ytdTax     = yearEntries.filter(e => e.transactionType === "Tax Payment").reduce((s, e) => s + Number(e.amount), 0);
+        const ytdBiz     = yearEntries.filter(e => e.transactionType === "Expense" && Number(e.businessUsePct) > 0)
+                                      .reduce((s, e) => s + Number(e.amount) * Number(e.businessUsePct) / 100, 0);
+        const ytdNet     = ytdIncome - ytdExpense - ytdTax;
+
+        // Category breakdown of expenses
+        const expByCat = yearEntries
+          .filter(e => e.transactionType === "Expense")
+          .reduce<Record<string, number>>((acc, e) => {
+            acc[e.category] = (acc[e.category] ?? 0) + Number(e.amount);
+            return acc;
+          }, {});
+        const sortedCats = Object.entries(expByCat).sort((a, b) => b[1] - a[1]);
+
+        // CSV export
+        function exportCsv() {
+          const rows = [
+            ["Date", "Name", "Type", "Category", "Amount (CAD)", "Business %", "Notes"],
+            ...yearEntries.map(e => [e.date, e.name, e.transactionType, e.category, e.amount, e.businessUsePct, e.notes]),
+          ];
+          const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+          const blob = new Blob([csv], { type: "text/csv" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a"); a.href = url; a.download = `spicer-os-${year}-tax.csv`; a.click();
+          URL.revokeObjectURL(url);
+        }
+
+        return (
+          <div className="flex flex-col gap-4 animate-fade-up stagger-3">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-[16px] font-700 text-text-1">{year} Tax Summary</h2>
+                <p className="text-[11px] text-text-3">Year-to-date from ledger</p>
+              </div>
+              <button
+                onClick={exportCsv}
+                className="flex items-center gap-2 px-3 py-2 rounded-[10px] text-[12px] font-600 bg-[rgba(29,155,240,0.08)] border border-[rgba(29,155,240,0.2)] text-accent hover:bg-[rgba(29,155,240,0.14)] transition-all"
+              >
+                ↓ Export CSV
+              </button>
+            </div>
+
+            {/* YTD summary */}
+            <div className="grid grid-cols-2 gap-3">
+              <Card>
+                <div className="text-[11px] text-text-3 mb-1">YTD Revenue</div>
+                <p className="text-[22px] font-700 tabular-nums font-mono text-success">{fmt(ytdIncome)}</p>
+              </Card>
+              <Card>
+                <div className="text-[11px] text-text-3 mb-1">YTD Expenses</div>
+                <p className="text-[22px] font-700 tabular-nums font-mono text-danger">{fmt(ytdExpense)}</p>
+              </Card>
+              <Card>
+                <div className="text-[11px] text-text-3 mb-1">Tax Paid</div>
+                <p className="text-[22px] font-700 tabular-nums font-mono text-warning">{fmt(ytdTax)}</p>
+              </Card>
+              <Card>
+                <div className="text-[11px] text-text-3 mb-1">Net Profit</div>
+                <p className={`text-[22px] font-700 tabular-nums font-mono ${ytdNet >= 0 ? "text-success" : "text-danger"}`}>{fmtSigned(ytdNet)}</p>
+              </Card>
+            </div>
+
+            {/* Business deductions */}
+            {ytdBiz > 0 && (
+              <Card>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-[14px]">🏢</span>
+                  <CardTitle>Business Deductions</CardTitle>
+                </div>
+                <p className="text-[22px] font-700 tabular-nums font-mono text-accent">{fmt(ytdBiz)}</p>
+                <p className="text-[11px] text-text-3 mt-1">Estimated deductible portion of expenses</p>
+              </Card>
+            )}
+
+            {/* Expense breakdown */}
+            {sortedCats.length > 0 && (
+              <Card>
+                <CardHeader><CardTitle>Expense Breakdown</CardTitle></CardHeader>
+                <div className="flex flex-col gap-2">
+                  {sortedCats.map(([cat, amt]) => {
+                    const pct = ytdExpense > 0 ? (amt / ytdExpense) * 100 : 0;
+                    return (
+                      <div key={cat}>
+                        <div className="flex items-center justify-between mb-0.5">
+                          <span className="text-[12px] text-text-2">{cat}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[11px] text-text-3">{pct.toFixed(0)}%</span>
+                            <span className="text-[12px] font-700 tabular-nums font-mono text-text-1">{fmt(amt)}</span>
+                          </div>
+                        </div>
+                        <div className="h-1 rounded-full bg-[rgba(255,255,255,0.05)] overflow-hidden">
+                          <div
+                            className="h-full rounded-full transition-all duration-500"
+                            style={{ width: `${pct}%`, background: CAT_COLORS[cat] ?? "#94a3b8" }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </Card>
+            )}
+
+            {yearEntries.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-16 gap-3">
+                <p className="text-[32px]">🧾</p>
+                <p className="text-[13px] text-text-3">No ledger entries for {year} yet.</p>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       </>)}
     </div>

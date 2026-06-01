@@ -8,6 +8,8 @@ import { SkeletonRows } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ChevronLeft, ChevronDown, ChevronUp, BookOpen, Flame, Dumbbell, Eye, Clock } from "lucide-react";
 import { formatDate } from "@/lib/utils";
+import { useDemoMode } from "@/components/ui/DemoModeContext";
+import { DEMO_HISTORY_HOURS, DEMO_HISTORY_VIEWS, DEMO_HISTORY_SUMMARY, DEMO_HISTORY_MINDSET } from "@/lib/demoMode";
 
 interface HistoryEntry {
   id: string;
@@ -39,6 +41,7 @@ function monthLabel(key: string): string {
 }
 
 export default function LogHistoryPage() {
+  const { isDemoMode } = useDemoMode();
   const [entries, setEntries] = useState<HistoryEntry[]>([]);
   const [cursor, setCursor]   = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
@@ -131,8 +134,8 @@ export default function LogHistoryPage() {
                         </div>
 
                         <div className="hidden sm:flex flex-col items-end gap-0.5 text-right flex-shrink-0">
-                          <p className="text-[11px] font-700 tabular-nums font-mono text-text-1">{e.hoursWorked}h</p>
-                          <p className="text-[10px] text-text-3 tabular-nums font-mono">{e.dailyViews.toLocaleString()} views</p>
+                          <p className="text-[11px] font-700 tabular-nums font-mono text-text-1">{isDemoMode ? DEMO_HISTORY_HOURS : e.hoursWorked}h</p>
+                          <p className="text-[10px] text-text-3 tabular-nums font-mono">{isDemoMode ? DEMO_HISTORY_VIEWS.toLocaleString() : e.dailyViews.toLocaleString()} views</p>
                         </div>
 
                         <Badge variant={habitCount === HABITS.length ? "success" : "muted"} className="flex-shrink-0">
@@ -144,16 +147,16 @@ export default function LogHistoryPage() {
 
                       {isOpen && hasNotes && (
                         <div className="px-5 pb-5 pt-1 border-t border-border-dim flex flex-col gap-3">
-                          {e.summaryOfDay && (
+                          {(isDemoMode || e.summaryOfDay) && (
                             <div>
                               <p className="text-[10px] uppercase tracking-widest text-text-3 mb-1">🏁 Summary</p>
-                              <p className="text-[13px] text-text-1 leading-relaxed whitespace-pre-wrap">{e.summaryOfDay}</p>
+                              <p className="text-[13px] text-text-1 leading-relaxed whitespace-pre-wrap">{isDemoMode ? DEMO_HISTORY_SUMMARY : e.summaryOfDay}</p>
                             </div>
                           )}
-                          {e.mindsetNotes && (
+                          {(isDemoMode || e.mindsetNotes) && (
                             <div>
                               <p className="text-[10px] uppercase tracking-widest text-text-3 mb-1">🧠 Mindset</p>
-                              <p className="text-[13px] text-text-1 leading-relaxed whitespace-pre-wrap">{e.mindsetNotes}</p>
+                              <p className="text-[13px] text-text-1 leading-relaxed whitespace-pre-wrap">{isDemoMode ? DEMO_HISTORY_MINDSET : e.mindsetNotes}</p>
                             </div>
                           )}
                         </div>

@@ -19,12 +19,14 @@ import { AlfredMemories } from "@/components/settings/AlfredMemories";
 import { AlfredKillSwitch } from "@/components/settings/AlfredKillSwitch";
 import { WakeWordSetting } from "@/components/settings/WakeWordSetting";
 import { CalendarFeeds } from "@/components/settings/CalendarFeeds";
-import { Shield, Key, Lock, Bell, History, ChevronDown, ChevronUp, User, Fingerprint, Activity, ChevronRight } from "lucide-react";
+import { Shield, Key, Lock, Bell, History, ChevronDown, ChevronUp, User, Fingerprint, Activity, ChevronRight, EyeOff } from "lucide-react";
 import Link from "next/link";
+import { useDemoMode } from "@/components/ui/DemoModeContext";
 
 type Section = "pin" | "totp" | "passkey" | "push" | "audit" | "profile" | null;
 
 export default function SettingsPage() {
+  const { isDemoMode, toggleDemoMode } = useDemoMode();
   const [open, setOpen] = useState<Section>(null);
   const toggle = (s: Section) => setOpen(prev => prev === s ? null : s);
 
@@ -106,6 +108,25 @@ export default function SettingsPage() {
       {/* Idle auto-lock */}
       <div className="animate-fade-up stagger-2">
         <IdleLockSetting />
+      </div>
+
+      {/* Demo Mode */}
+      <div className="animate-fade-up stagger-2">
+        <button
+          onClick={toggleDemoMode}
+          className="w-full flex items-center gap-3 p-4 rounded-[16px] bg-card border border-border-dim hover:border-border transition-all"
+        >
+          <div className={`w-9 h-9 rounded-[12px] flex items-center justify-center flex-shrink-0 transition-all ${isDemoMode ? "bg-[rgba(251,146,60,0.15)] border border-[rgba(251,146,60,0.35)]" : "bg-[rgba(255,255,255,0.04)] border border-border-dim"}`}>
+            <EyeOff size={16} className={isDemoMode ? "text-orange-400" : "text-text-3"} />
+          </div>
+          <div className="flex-1 text-left">
+            <p className="text-[14px] font-600 text-text-1">Demo Mode</p>
+            <p className="text-[11px] text-text-3">Hide real financial data for screenshots & recordings · ⌘⇧D</p>
+          </div>
+          <div className={`w-10 h-6 rounded-full transition-all flex items-center px-0.5 ${isDemoMode ? "bg-orange-400" : "bg-[rgba(255,255,255,0.1)]"}`}>
+            <div className={`w-5 h-5 rounded-full bg-white shadow transition-transform ${isDemoMode ? "translate-x-4" : "translate-x-0"}`} />
+          </div>
+        </button>
       </div>
 
       {/* Overview */}

@@ -7,6 +7,8 @@ import { ProgressBar } from "@/components/ui/ProgressBar";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { Plus, Trash2, Zap } from "lucide-react";
 import { getActiveDateString, getTomorrowDateString, formatDate } from "@/lib/utils";
+import { useDemoMode } from "@/components/ui/DemoModeContext";
+import { demoGoalText, demoLifeGoalTitle } from "@/lib/demoMode";
 
 interface DailyGoal {
   id: string;
@@ -38,22 +40,25 @@ function GoalTicker({ goals }: { goals: DailyGoal[] }) {
   );
 }
 
-function LifeGoalCard({ goal }: { goal: { title: string; target: number; current: number; status: string; priority: string; dueDate?: string } }) {
-  const pct       = goal.target > 0 ? Math.min(100, (goal.current / goal.target) * 100) : 0;
-  const remaining = goal.target - goal.current;
+function LifeGoalCard({ goal, index }: { goal: { title: string; target: number; current: number; status: string; priority: string; dueDate?: string }; index: number }) {
+  const { isDemoMode } = useDemoMode();
+  const dCurrent  = isDemoMode ? 47832 : goal.current;
+  const dTarget   = isDemoMode ? 250000 : goal.target;
+  const pct       = dTarget > 0 ? Math.min(100, (dCurrent / dTarget) * 100) : 0;
+  const remaining = dTarget - dCurrent;
   const priorityVariant = goal.priority === "High" ? "danger" : goal.priority === "Medium" ? "warning" : "muted";
 
   return (
     <Card className="flex flex-col gap-3">
       <div className="flex items-start justify-between gap-2">
-        <p className="text-[14px] font-600 text-text-1">{goal.title}</p>
+        <p className="text-[14px] font-600 text-text-1">{isDemoMode ? demoLifeGoalTitle(index) : goal.title}</p>
         <Badge variant={priorityVariant as never}>{goal.priority}</Badge>
       </div>
       <ProgressBar value={pct} color="accent" />
       <div className="flex items-center justify-between text-[12px]">
         <span className="text-text-3">
-          <span className="text-text-1 font-700 tabular-nums font-mono">${goal.current.toLocaleString("en-CA")}</span>
-          <span className="text-text-3"> / ${goal.target.toLocaleString("en-CA")} CAD</span>
+          <span className="text-text-1 font-700 tabular-nums font-mono">${dCurrent.toLocaleString("en-CA")}</span>
+          <span className="text-text-3"> / ${dTarget.toLocaleString("en-CA")} CAD</span>
         </span>
         <span className="text-text-3">${remaining.toLocaleString("en-CA")} left</span>
       </div>
@@ -67,6 +72,7 @@ interface LifeGoal {
 }
 
 export default function GoalsPage() {
+  const { isDemoMode } = useDemoMode();
   const todayStr      = getActiveDateString();
   const tomorrowStr   = getTomorrowDateString();
   const todayLabel    = formatDate(todayStr);
@@ -236,7 +242,7 @@ export default function GoalsPage() {
               >
                 <Checkbox checked={goal.done} onChange={() => toggleDone(goal.id, goal.done)} />
                 <span className={`flex-1 text-[13px] ${goal.done ? "line-through text-text-3" : "text-text-1"}`}>
-                  {goal.text}
+                  {isDemoMode ? demoGoalText(todayGoals.indexOf(goal)) : goal.text}
                 </span>
                 <button onClick={() => toggleQueue(goal.id, goal.queued)} title="Queue" className="text-text-3 hover:text-accent transition-colors p-1">
                   <Zap size={13} />
@@ -287,7 +293,7 @@ export default function GoalsPage() {
               <p className="text-[12px] text-text-3 italic text-center py-3">Nothing planned for tomorrow yet</p>
             ) : tomorrowGoals.map(goal => (
               <div key={goal.id} className="flex items-center gap-2 px-3 py-2.5 rounded-[10px] bg-[rgba(255,255,255,0.03)]">
-                <Checkbox checked={false} onChange={() => {}} disabled label={goal.text} />
+                <Checkbox checked={false} onChange={() => {}} disabled label={isDemoMode ? demoGoalText(tomorrowGoals.indexOf(goal)) : goal.text} />
                 <button onClick={() => deleteGoal(goal.id, tomorrowStr)} className="ml-auto text-text-3 hover:text-danger transition-colors p-1">
                   <Trash2 size={13} />
                 </button>
@@ -330,8 +336,8 @@ export default function GoalsPage() {
               No life goals in Notion yet. Add some to the <span className="text-accent">🥅 Goals</span> database.
             </p>
           </div>
-        ) : lifeGoals.map(goal => (
-          <LifeGoalCard key={goal.id} goal={goal} />
+        ) : lifeGoals.map((goal, i) => (
+          <LifeGoalCard key={goal.id} goal={goal} index={i} />
         ))}
       </div>
     </div>

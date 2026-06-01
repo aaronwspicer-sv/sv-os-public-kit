@@ -1,5 +1,10 @@
 "use client";
-import { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo } from "react";
+import { useDemoMode } from "@/components/ui/DemoModeContext";
+import {
+  DEMO_YEAR_INCOME, DEMO_YEAR_EXPENSE, DEMO_YEAR_NET,
+  DEMO_TOTAL_VIEWS, DEMO_TOP_CATEGORIES, DEMO_MONTHLY,
+} from "@/lib/demoMode";
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { ProgressBar } from "@/components/ui/ProgressBar";
@@ -7,7 +12,7 @@ import { SkeletonRows } from "@/components/ui/Skeleton";
 import { currencySymbol } from "@/lib/money";
 import {
   Calendar, Flame, Clock, Eye, Dumbbell, DollarSign,
-  Video, Target, Award, ChevronLeft, ChevronRight,
+  Video, Target, Award, ChevronLeft, ChevronRight, GitCompare,
 } from "lucide-react";
 
 interface DailyEntry { date: string; habitCount: number; hours: number; logged: boolean; }
@@ -53,10 +58,14 @@ function fmtViews(n: number) {
 function isLeap(y: number) { return (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0; }
 
 export default function YearPage() {
+  const { isDemoMode } = useDemoMode();
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState(currentYear);
   const [data, setData] = useState<YearStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [compare, setCompare] = useState(false);
+  const [prevData, setPrevData] = useState<YearStats | null>(null);
+  const [loadingPrev, setLoadingPrev] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -67,9 +76,34 @@ export default function YearPage() {
       .finally(() => setLoading(false));
   }, [year]);
 
+  useEffect(() => {
+    if (!compare) { setPrevData(null); return; }
+    setLoadingPrev(true);
+    fetch(`/api/year-stats?year=${year - 1}`)
+      .then(r => r.json())
+      .then(d => { if (d && !d.error) setPrevData(d); })
+      .finally(() => setLoadingPrev(false));
+  }, [compare, year]);
+
   const totalDays = year === currentYear
     ? Math.floor((Date.now() - new Date(`${year}-01-01`).getTime()) / (1000 * 60 * 60 * 24)) + 1
     : isLeap(year) ? 366 : 365;
+
+  function Delta({ cur, prev, fmt = String, invert = false }: {
+    cur: number; prev: number | undefined;
+    fmt?: (n: number) => string; invert?: boolean;
+  }) {
+    if (prev === undefined || prev === 0) return null;
+    const d = cur - prev;
+    const pct = Math.round((d / Math.abs(prev)) * 100);
+    const positive = invert ? d < 0 : d > 0;
+    const sign = d > 0 ? "+" : "";
+    return (
+      <span className={`text-[10px] font-600 ml-1 ${positive ? "text-success" : "text-danger"}`}>
+        {sign}{fmt(d)} ({sign}{pct}%)
+      </span>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-5">
@@ -79,6 +113,17 @@ export default function YearPage() {
           <h1 className="text-[28px] font-700 tracking-tight tabular-nums">{year}</h1>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setCompare(c => !c)}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-[10px] text-[11px] font-600 border transition-all ${
+              compare
+                ? "border-accent text-accent bg-accent-dim"
+                : "border-border-dim text-text-3 hover:border-accent hover:text-accent"
+            }`}
+            title={compare ? `Hide ${year - 1} comparison` : `Compare to ${year - 1}`}
+          >
+            <GitCompare size={12} /> vs {year - 1}
+          </button>
           <button
             onClick={() => setYear(y => y - 1)}
             className="w-8 h-8 rounded-[10px] glass-1 inline-flex items-center justify-center hover:border-accent text-text-2 hover:text-accent transition-all"
@@ -93,6 +138,16 @@ export default function YearPage() {
           ><ChevronRight size={14} /></button>
         </div>
       </div>
+
+      {compare && (
+        <div className="px-4 py-2.5 rounded-[10px] bg-[rgba(29,155,240,0.07)] border border-[rgba(29,155,240,0.2)] flex items-center gap-2 text-[11px]">
+          <GitCompare size={11} className="text-accent flex-shrink-0" />
+          <span className="text-text-3">
+            Comparing <span className="text-accent font-700">{year}</span> to <span className="text-text-2 font-700">{year - 1}</span>
+            {loadingPrev ? " — loading…" : prevData ? "" : " — no data for previous year"}
+          </span>
+        </div>
+      )}
 
       {loading || !data ? (
         <>
@@ -148,14 +203,14 @@ export default function YearPage() {
               </div>
             </CardHeader>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
-              <Stat icon={Dumbbell} label="Workouts" value={data.log.workoutDays} streak={data.log.longestStreaks.workout} suffix="days" />
-              <Stat icon={Flame}    label="NF"       value={data.log.nfDays}      streak={data.log.longestStreaks.nf}      suffix="days" color="warning" />
-              <Stat icon={Eye}      label="Posted"   value={data.log.videoDays}   streak={data.log.longestStreaks.video}   suffix="days" />
-              <Stat icon={Clock}    label="Journal"  value={data.log.journalDays} streak={data.log.longestStreaks.journal} suffix="days" />
+              <Stat icon={Dumbbell} label="Workouts" value={data.log.workoutDays} streak={data.log.longestStreaks.workout} suffix="days" extra={compare && prevData ? <Delta cur={data.log.workoutDays} prev={prevData.log.workoutDays} /> : null} />
+              <Stat icon={Flame}    label="NF"       value={data.log.nfDays}      streak={data.log.longestStreaks.nf}      suffix="days" color="warning" extra={compare && prevData ? <Delta cur={data.log.nfDays} prev={prevData.log.nfDays} /> : null} />
+              <Stat icon={Eye}      label="Posted"   value={data.log.videoDays}   streak={data.log.longestStreaks.video}   suffix="days" extra={compare && prevData ? <Delta cur={data.log.videoDays} prev={prevData.log.videoDays} /> : null} />
+              <Stat icon={Clock}    label="Journal"  value={data.log.journalDays} streak={data.log.longestStreaks.journal} suffix="days" extra={compare && prevData ? <Delta cur={data.log.journalDays} prev={prevData.log.journalDays} /> : null} />
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <Stat label="Total Hours Worked" value={data.log.totalHours} suffix="hrs" />
-              <Stat label="Daily Views Logged" value={fmtViews(data.log.totalViewsLogged)} />
+              <Stat label="Total Hours Worked" value={data.log.totalHours} suffix="hrs" extra={compare && prevData ? <Delta cur={data.log.totalHours} prev={prevData.log.totalHours} fmt={n => `${n.toFixed(0)}h`} /> : null} />
+              <Stat label="Daily Views Logged" value={fmtViews(data.log.totalViewsLogged)} extra={compare && prevData ? <Delta cur={data.log.totalViewsLogged} prev={prevData.log.totalViewsLogged} fmt={fmtViews} /> : null} />
             </div>
           </Card>
 
@@ -195,49 +250,59 @@ export default function YearPage() {
           </Card>
 
           {/* Money */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <DollarSign size={14} className="text-success" />
-                <CardTitle>Money</CardTitle>
-              </div>
-              <Badge variant={data.money.net >= 0 ? "success" : "danger"}>
-                Net {data.money.net >= 0 ? "+" : "-"}{fmtMoney(data.money.net)}
-              </Badge>
-            </CardHeader>
-            <div className="grid grid-cols-2 gap-3 mb-4">
-              <div className="flex flex-col items-start gap-1 px-3 py-3 rounded-[10px] bg-[rgba(52,211,153,0.06)] border border-[rgba(52,211,153,0.18)]">
-                <p className="text-[10px] uppercase tracking-widest text-text-3">In</p>
-                <p className="text-[22px] font-700 tabular-nums font-mono text-success">{fmtMoney(data.money.income)}</p>
-              </div>
-              <div className="flex flex-col items-start gap-1 px-3 py-3 rounded-[10px] bg-[rgba(248,113,113,0.06)] border border-[rgba(248,113,113,0.18)]">
-                <p className="text-[10px] uppercase tracking-widest text-text-3">Out</p>
-                <p className="text-[22px] font-700 tabular-nums font-mono text-danger">{fmtMoney(data.money.expense)}</p>
-              </div>
-            </div>
-            {/* Monthly money bars (income vs expense, paired) */}
-            <p className="text-[10px] uppercase tracking-widest text-text-3 mb-2">In vs Out by month</p>
-            <MoneyBars monthly={data.monthly} />
-            {data.money.topCategories.length > 0 && (
-              <>
-                <p className="text-[10px] uppercase tracking-widest text-text-3 mb-2 mt-4">Top spend categories</p>
-                <div className="flex flex-col gap-1.5">
-                  {data.money.topCategories.map((c, i) => {
-                    const pct = data.money.expense > 0 ? (c.amount / data.money.expense) * 100 : 0;
-                    return (
-                      <div key={c.category} className="flex flex-col gap-1">
-                        <div className="flex items-center justify-between text-[11px]">
-                          <span className="text-text-2">{i + 1}. {c.category}</span>
-                          <span className="text-text-1 font-700 tabular-nums">{fmtMoney(c.amount)}</span>
-                        </div>
-                        <ProgressBar value={pct} color="warning" />
-                      </div>
-                    );
-                  })}
+          {(() => {
+            const income  = isDemoMode ? DEMO_YEAR_INCOME   : data.money.income;
+            const expense = isDemoMode ? DEMO_YEAR_EXPENSE  : data.money.expense;
+            const net     = isDemoMode ? DEMO_YEAR_NET      : data.money.net;
+            const cats    = isDemoMode ? DEMO_TOP_CATEGORIES : data.money.topCategories;
+            const monthly = isDemoMode ? DEMO_MONTHLY        : data.monthly;
+            return (
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <DollarSign size={14} className="text-success" />
+                  <CardTitle>Money</CardTitle>
                 </div>
-              </>
-            )}
-          </Card>
+                <Badge variant={net >= 0 ? "success" : "danger"}>
+                  Net {net >= 0 ? "+" : "-"}{fmtMoney(net)}
+                </Badge>
+              </CardHeader>
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                <div className="flex flex-col items-start gap-1 px-3 py-3 rounded-[10px] bg-[rgba(52,211,153,0.06)] border border-[rgba(52,211,153,0.18)]">
+                  <p className="text-[10px] uppercase tracking-widest text-text-3">In</p>
+                  <p className="text-[22px] font-700 tabular-nums font-mono text-success">{fmtMoney(income)}</p>
+                  {compare && prevData && <Delta cur={data.money.income} prev={prevData.money.income} fmt={fmtMoney} />}
+                </div>
+                <div className="flex flex-col items-start gap-1 px-3 py-3 rounded-[10px] bg-[rgba(248,113,113,0.06)] border border-[rgba(248,113,113,0.18)]">
+                  <p className="text-[10px] uppercase tracking-widest text-text-3">Out</p>
+                  <p className="text-[22px] font-700 tabular-nums font-mono text-danger">{fmtMoney(expense)}</p>
+                  {compare && prevData && <Delta cur={data.money.expense} prev={prevData.money.expense} fmt={fmtMoney} invert />}
+                </div>
+              </div>
+              <p className="text-[10px] uppercase tracking-widest text-text-3 mb-2">In vs Out by month</p>
+              <MoneyBars monthly={monthly} />
+              {cats.length > 0 && (
+                <>
+                  <p className="text-[10px] uppercase tracking-widest text-text-3 mb-2 mt-4">Top spend categories</p>
+                  <div className="flex flex-col gap-1.5">
+                    {cats.map((c, i) => {
+                      const pct = expense > 0 ? (c.amount / expense) * 100 : 0;
+                      return (
+                        <div key={c.category} className="flex flex-col gap-1">
+                          <div className="flex items-center justify-between text-[11px]">
+                            <span className="text-text-2">{i + 1}. {c.category}</span>
+                            <span className="text-text-1 font-700 tabular-nums">{fmtMoney(c.amount)}</span>
+                          </div>
+                          <ProgressBar value={pct} color="warning" />
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+            </Card>
+            );
+          })()}
 
           {/* Content by pillar */}
           <Card>
@@ -246,12 +311,12 @@ export default function YearPage() {
                 <Video size={14} className="text-accent" />
                 <CardTitle>Content by Pillar</CardTitle>
               </div>
-              <Badge variant="muted">{fmtViews(data.content.totalViews)} views</Badge>
+              <Badge variant="muted">{fmtViews(isDemoMode ? DEMO_TOTAL_VIEWS : data.content.totalViews)} views</Badge>
             </CardHeader>
             <div className="grid grid-cols-3 gap-3 mb-3">
               <Stat label="Long Form"   value={data.content.longForm} />
               <Stat label="Short Form"  value={data.content.shortForm} />
-              <Stat label="Total Views" value={fmtViews(data.content.totalViews)} color="success" />
+              <Stat label="Total Views" value={fmtViews(isDemoMode ? DEMO_TOTAL_VIEWS : data.content.totalViews)} color="success" />
             </div>
             {data.content.byPillar.some(p => p.count > 0) && (
               <div className="flex flex-col gap-2">
@@ -465,7 +530,7 @@ function MoneyBars({ monthly }: { monthly: MonthlyEntry[] }) {
 }
 
 function Stat({
-  icon: Icon, label, value, suffix, color, streak,
+  icon: Icon, label, value, suffix, color, streak, extra,
 }: {
   icon?: typeof Calendar;
   label: string;
@@ -473,6 +538,7 @@ function Stat({
   suffix?: string;
   color?: "success" | "warning";
   streak?: number;
+  extra?: React.ReactNode;
 }) {
   return (
     <div className="flex flex-col gap-1 px-3 py-3 rounded-[10px] bg-[rgba(255,255,255,0.03)] border border-border-dim">
@@ -480,6 +546,7 @@ function Stat({
       <p className={`text-[20px] font-700 tabular-nums font-mono ${color === "success" ? "text-success" : color === "warning" ? "text-warning" : "text-text-1"}`}>
         {value}{suffix && <span className="text-[11px] text-text-3 font-400 ml-1">{suffix}</span>}
       </p>
+      {extra && <div>{extra}</div>}
       <p className="text-[9px] uppercase tracking-widest text-text-3">{label}</p>
       {streak !== undefined && streak > 0 && (
         <p className="text-[9px] text-warning font-700 inline-flex items-center gap-0.5">

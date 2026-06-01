@@ -34,7 +34,7 @@ function renderAlfredReviewEmail(name: string, review: string): { subject: strin
             <div style="font-size:14px;color:#fafafa;line-height:1.6;white-space:pre-wrap;">${review.replace(/</g,"&lt;")}</div>
           </div>
           <div style="margin-top:24px;text-align:center;">
-            <a href="${config.brand.appUrl}/d" style="display:inline-block;padding:12px 22px;border-radius:12px;background:linear-gradient(180deg,#3eb0ff,#1d9bf0);color:#000;font-weight:700;text-decoration:none;font-size:13px;">Open Spicer OS →</a>
+            <a href="${config.brand.appUrl}/d" style="display:inline-block;padding:12px 22px;border-radius:12px;background:linear-gradient(180deg,#3eb0ff,#1d9bf0);color:#000;font-weight:700;text-decoration:none;font-size:13px;">Open ${config.brand.shortName} →</a>
           </div>
         </td></tr>
       </table>
@@ -129,7 +129,7 @@ async function run(req: NextRequest) {
         sendPushToUser(uid, {
           title: "✍️ Don't let today slip",
           body:  "90 seconds to log what happened. Future-you thanks you.",
-          url:   "/d/log",
+          url:   "/d/entry",
           tag:   "evening-journal",
           requireInteraction: true,
         }, sb).catch(() => {});

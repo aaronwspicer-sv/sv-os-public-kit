@@ -11,6 +11,8 @@ import {
 } from "lucide-react";
 import { MapView } from "@/components/timeline/MapView";
 import { config } from "@/config";
+import { useDemoMode } from "@/components/ui/DemoModeContext";
+import { DEMO_TIMELINE_TITLE, DEMO_TIMELINE_BODY, DEMO_TIMELINE_PLACE } from "@/lib/demoMode";
 
 // ── Types ────────────────────────────────────────────────────
 type EventType = "journal" | "video" | "money" | "milestone" | "photo" | "goal";
@@ -297,6 +299,7 @@ export default function TimelinePage() {
 
 // ── Single timeline card ─────────────────────────────────────
 function TimelineCard({ ev, onOpen }: { ev: TimelineEvent; onOpen: () => void }) {
+  const { isDemoMode } = useDemoMode();
   const meta = TYPE_META[ev.type];
   const Icon = meta.icon;
 
@@ -331,8 +334,8 @@ function TimelineCard({ ev, onOpen }: { ev: TimelineEvent; onOpen: () => void })
               <p className="text-[10px] uppercase tracking-widest text-text-3">{formatLongDate(ev.datetime)}</p>
               <span className="text-[9px] uppercase tracking-widest" style={{ color: meta.color }}>{meta.label}</span>
             </div>
-            <p className="text-[13px] font-600 text-text-1 truncate">{ev.title}</p>
-            {ev.body && <p className="text-[11px] text-text-3 mt-0.5 line-clamp-2">{ev.body}</p>}
+            <p className="text-[13px] font-600 text-text-1 truncate">{isDemoMode ? DEMO_TIMELINE_TITLE : ev.title}</p>
+            {(isDemoMode || ev.body) && <p className="text-[11px] text-text-3 mt-0.5 line-clamp-2">{isDemoMode ? DEMO_TIMELINE_BODY : ev.body}</p>}
           </div>
         </div>
       </button>
@@ -342,6 +345,7 @@ function TimelineCard({ ev, onOpen }: { ev: TimelineEvent; onOpen: () => void })
 
 // ── Detail modal ─────────────────────────────────────────────
 function DetailModal({ ev, onClose }: { ev: TimelineEvent; onClose: () => void }) {
+  const { isDemoMode } = useDemoMode();
   const meta = TYPE_META[ev.type];
   const Icon = meta.icon;
   useEffect(() => {
@@ -378,15 +382,15 @@ function DetailModal({ ev, onClose }: { ev: TimelineEvent; onClose: () => void }
               <div className="flex items-center gap-2">
                 <p className="text-[10px] uppercase tracking-widest text-text-3">{formatLongDate(ev.datetime)} · {formatTime(ev.datetime)}</p>
               </div>
-              <p className="text-[15px] font-700 text-text-1 mt-0.5">{ev.title}</p>
+              <p className="text-[15px] font-700 text-text-1 mt-0.5">{isDemoMode ? DEMO_TIMELINE_TITLE : ev.title}</p>
             </div>
             <button onClick={onClose} className="text-text-3 hover:text-text-1 transition-colors p-1 -mr-1" aria-label="Close">
               <X size={16} />
             </button>
           </div>
 
-          {ev.body && (
-            <p className="text-[13px] text-text-2 leading-relaxed whitespace-pre-wrap">{ev.body}</p>
+          {(isDemoMode || ev.body) && (
+            <p className="text-[13px] text-text-2 leading-relaxed whitespace-pre-wrap">{isDemoMode ? DEMO_TIMELINE_BODY : ev.body}</p>
           )}
 
           {/* Type-specific meta */}
@@ -401,14 +405,14 @@ function DetailModal({ ev, onClose }: { ev: TimelineEvent; onClose: () => void }
                 <Badge key={h.key} variant="success">{h.emoji} {h.label}</Badge>
               ))}
               {typeof ev.meta.hours === "number" && ev.meta.hours > 0 && (
-                <Badge variant="accent">⏱ {ev.meta.hours}h</Badge>
+                <Badge variant="accent">⏱ {isDemoMode ? "7.5" : ev.meta.hours}h</Badge>
               )}
             </div>
           )}
 
           {ev.type === "photo" && ev.meta?.place && (
             <p className="text-[11px] text-text-3 inline-flex items-center gap-1">
-              <MapPin size={11} /> {ev.meta.place}
+              <MapPin size={11} /> {isDemoMode ? DEMO_TIMELINE_PLACE : ev.meta.place}
             </p>
           )}
 

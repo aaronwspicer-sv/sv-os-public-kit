@@ -1,7 +1,7 @@
 "use client";
 // Floating ✦ button bottom-right that opens Alfred's chat panel.
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Sparkles, X, Send, RefreshCcw, Wrench, ChevronDown, Image as ImageIcon, Trash2, Mic, MicOff, Square, Volume2, VolumeX, Headphones, Radio, PhoneOff } from "lucide-react";
+import { Sparkles, X, Send, RefreshCcw, Wrench, ChevronDown, Image as ImageIcon, Trash2, Mic, MicOff, Square, Volume2, VolumeX, Headphones, Radio, PhoneOff, History, Pencil, Check } from "lucide-react";
 import { useRealtime } from "@/lib/alfred/useRealtime";
 import { useRouter } from "next/navigation";
 
@@ -353,6 +353,14 @@ export function AlfredFab() {
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [convId, setConvId] = useState<string | null>(null);
+  const [convTitle, setConvTitle] = useState<string | null>(null);
+
+  // Threads panel
+  const [threadsOpen, setThreadsOpen] = useState(false);
+  const [threads, setThreads] = useState<{ id: string; title: string | null; updated_at: string; preview: string | null }[]>([]);
+  const [threadsLoading, setThreadsLoading] = useState(false);
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
   const [model, setModelState] = useState<string>("gpt-4o-mini");
   const [modelOpen, setModelOpen] = useState(false);
   const [pendingImages, setPendingImages] = useState<string[]>([]);
@@ -702,6 +710,7 @@ export function AlfredFab() {
           try { payload = JSON.parse(line); } catch { continue; }
           if (payload.kind === "meta" && payload.conversationId) {
             setConvId(payload.conversationId);
+            if (!convId) setConvTitle(String(text).slice(0, 60));
           } else if (payload.kind === "phase") {
             setMessages(prev => {
               const copy = [...prev];
@@ -768,8 +777,55 @@ export function AlfredFab() {
   function newChat() {
     setMessages([]);
     setConvId(null);
+    setConvTitle(null);
+    setThreadsOpen(false);
     setInput("");
     setTimeout(() => inputRef.current?.focus(), 50);
+  }
+
+  async function openThreads() {
+    setThreadsOpen(o => !o);
+    if (threadsOpen) return;
+    setThreadsLoading(true);
+    try {
+      const d = await fetch("/api/alfred/conversations").then(r => r.json());
+      setThreads(d.conversations ?? []);
+    } catch {}
+    finally { setThreadsLoading(false); }
+  }
+
+  async function loadThread(id: string, title: string | null) {
+    setThreadsOpen(false);
+    setMessages([]);
+    setConvId(id);
+    setConvTitle(title);
+    try {
+      const d = await fetch(`/api/alfred/conversations/${id}/messages`).then(r => r.json());
+      const loaded: Msg[] = (d.messages ?? [])
+        .filter((m: any) => m.role === "user" || m.role === "assistant")
+        .map((m: any) => ({ role: m.role, content: m.content ?? "" }));
+      setMessages(loaded);
+    } catch {}
+    setTimeout(() => inputRef.current?.focus(), 50);
+  }
+
+  async function saveRename(id: string) {
+    const title = renameValue.trim();
+    if (!title) { setRenamingId(null); return; }
+    await fetch(`/api/alfred/conversations/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title }),
+    }).catch(() => {});
+    setThreads(prev => prev.map(t => t.id === id ? { ...t, title } : t));
+    if (convId === id) setConvTitle(title);
+    setRenamingId(null);
+  }
+
+  async function deleteThread(id: string) {
+    await fetch(`/api/alfred/conversations/${id}`, { method: "DELETE" }).catch(() => {});
+    setThreads(prev => prev.filter(t => t.id !== id));
+    if (convId === id) newChat();
   }
 
   return (
@@ -904,6 +960,9 @@ export function AlfredFab() {
                     </>
                   )}
                 </div>
+                <button onClick={openThreads} className={`p-1.5 rounded-md transition-all ${threadsOpen ? "bg-accent-dim text-accent" : "hover:bg-[rgba(255,255,255,0.06)] text-text-3"}`} title="Conversation history">
+                  <History size={14} />
+                </button>
                 <button onClick={newChat} className="p-1.5 rounded-md hover:bg-[rgba(255,255,255,0.06)] text-text-3" title="New chat">
                   <RefreshCcw size={14} />
                 </button>
@@ -912,6 +971,56 @@ export function AlfredFab() {
                 </button>
               </div>
             </div>
+
+            {/* Active thread title */}
+            {convTitle && !threadsOpen && (
+              <div className="px-4 py-1.5 border-b border-border-dim flex items-center gap-2">
+                <span className="text-[11px] text-text-3 truncate flex-1">{convTitle}</span>
+                <button
+                  onClick={() => { setRenamingId(convId); setRenameValue(convTitle ?? ""); setThreadsOpen(true); openThreads(); }}
+                  className="p-1 rounded hover:bg-[rgba(255,255,255,0.06)] text-text-3 flex-shrink-0"
+                  title="Rename"
+                ><Pencil size={10} /></button>
+              </div>
+            )}
+
+            {/* Threads panel */}
+            {threadsOpen && (
+              <div className="border-b border-border-dim max-h-[280px] overflow-y-auto">
+                {threadsLoading ? (
+                  <div className="px-4 py-6 text-center text-[12px] text-text-3">Loading…</div>
+                ) : threads.length === 0 ? (
+                  <div className="px-4 py-6 text-center text-[12px] text-text-3">No conversations yet</div>
+                ) : (
+                  <div className="flex flex-col p-2 gap-0.5">
+                    {threads.map(t => (
+                      <div key={t.id} className={`group flex items-center gap-2 px-3 py-2 rounded-[10px] cursor-pointer transition-all ${t.id === convId ? "bg-accent-dim border border-[rgba(29,155,240,0.2)]" : "hover:bg-[rgba(255,255,255,0.04)]"}`}>
+                        {renamingId === t.id ? (
+                          <input
+                            autoFocus
+                            value={renameValue}
+                            onChange={e => setRenameValue(e.target.value)}
+                            onKeyDown={e => { if (e.key === "Enter") saveRename(t.id); if (e.key === "Escape") setRenamingId(null); }}
+                            onBlur={() => saveRename(t.id)}
+                            className="flex-1 bg-transparent text-[12px] text-text-1 outline-none border-b border-accent"
+                            onClick={e => e.stopPropagation()}
+                          />
+                        ) : (
+                          <div className="flex-1 min-w-0" onClick={() => loadThread(t.id, t.title)}>
+                            <p className="text-[12px] font-600 text-text-1 truncate">{t.title ?? "Untitled"}</p>
+                            {t.preview && <p className="text-[10px] text-text-3 truncate">{t.preview}</p>}
+                          </div>
+                        )}
+                        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                          <button onClick={e => { e.stopPropagation(); setRenamingId(t.id); setRenameValue(t.title ?? ""); }} className="p-1 rounded hover:bg-[rgba(255,255,255,0.08)] text-text-3" title="Rename"><Pencil size={10} /></button>
+                          <button onClick={e => { e.stopPropagation(); deleteThread(t.id); }} className="p-1 rounded hover:bg-[rgba(248,113,113,0.12)] text-text-3 hover:text-danger" title="Delete"><Trash2 size={10} /></button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Live voice orb banner — only when voice is on */}
             {voiceLive && (

@@ -13,6 +13,8 @@ import { AlfredFab } from "@/components/alfred/AlfredFab";
 import { WakeWord } from "@/components/alfred/WakeWord";
 import { BootGate } from "@/components/BootGate";
 import { OnboardingGate } from "@/components/onboarding/OnboardingGate";
+import { DemoModeProvider } from "@/components/ui/DemoModeContext";
+import { DemoModeBanner } from "@/components/ui/DemoModeBanner";
 
 export default async function ProtectedLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -33,9 +35,11 @@ export default async function ProtectedLayout({ children }: { children: React.Re
 
   return (
     <ToastProvider>
+      <DemoModeProvider>
       <BootGate>
         <OnboardingGate>
         <div className="min-h-screen bg-canvas">
+          <DemoModeBanner />
           <Sidebar />
           <main className="md:ml-[220px] min-h-screen pb-24 md:pb-0">
             <div className="max-w-5xl mx-auto px-4 md:px-8 py-6 md:py-8">
@@ -52,6 +56,7 @@ export default async function ProtectedLayout({ children }: { children: React.Re
         </div>
         </OnboardingGate>
       </BootGate>
+      </DemoModeProvider>
     </ToastProvider>
   );
 }

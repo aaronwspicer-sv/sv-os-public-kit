@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useToast } from "@/components/ui/ToastProvider";
 import { config } from "@/config";
 import { formatMoney } from "@/lib/money";
+import { useDemoMode } from "@/components/ui/DemoModeContext";
+import { DEMO_NET_WORTH, DEMO_INBOX_COUNT, DEMO_INBOX_MERCHANT, demoGoalText } from "@/lib/demoMode";
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Checkbox } from "@/components/ui/Checkbox";
@@ -13,8 +15,9 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import {
   BookOpen, Target, DollarSign, Video, Flame, TrendingUp,
   Inbox, ChevronRight, Cloud, CloudRain, Sun, CloudSnow, Trophy,
-  Settings as SettingsIcon, Calendar as CalendarIcon, Clock, Menu, LogOut,
+  Settings as SettingsIcon, Calendar as CalendarIcon, Clock, Menu, LogOut, GraduationCap,
 } from "lucide-react";
+import { LifeGpaCard } from "@/components/ui/LifeGpaCard";
 
 // ── Types ─────────────────────────────────────────────────────
 interface DailyTodo { id: string; text: string; done: boolean; date: string; }
@@ -49,6 +52,7 @@ function weatherIcon(code: number) {
 }
 
 export default function HomePage() {
+  const { isDemoMode } = useDemoMode();
   // Greeting + weather. Owner name from config (was hardcoded "Aaron").
   const firstName = config.owner.name;
   const [weather, setWeather] = useState<Weather | null>(null);
@@ -149,15 +153,19 @@ export default function HomePage() {
       </div>
 
       {/* Inbox alert (only shown if items waiting) */}
-      {inbox && inbox.length > 0 && (
+      {(isDemoMode ? DEMO_INBOX_COUNT > 0 : inbox && inbox.length > 0) && (
         <Link href="/d/finances" className="animate-fade-up stagger-2 block">
           <Card variant="warning" interactive className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-[12px] bg-[rgba(251,191,36,0.14)] border border-[rgba(251,191,36,0.28)] flex items-center justify-center flex-shrink-0">
               <Inbox size={16} className="text-warning" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[13px] font-600 text-text-1">{inbox.length} transaction{inbox.length === 1 ? "" : "s"} to review</p>
-              <p className="text-[11px] text-text-3 truncate">Latest: {inbox[0]?.merchant_name ?? "—"}</p>
+              <p className="text-[13px] font-600 text-text-1">
+                {isDemoMode ? DEMO_INBOX_COUNT : inbox!.length} transaction{(isDemoMode ? DEMO_INBOX_COUNT : inbox!.length) === 1 ? "" : "s"} to review
+              </p>
+              <p className="text-[11px] text-text-3 truncate">
+                Latest: {isDemoMode ? DEMO_INBOX_MERCHANT : (inbox![0]?.merchant_name ?? "—")}
+              </p>
             </div>
             <ChevronRight size={16} className="text-text-3" />
           </Card>
@@ -177,11 +185,11 @@ export default function HomePage() {
               </div>
               <ChevronRight size={14} className="text-text-3" />
             </CardHeader>
-            {netWorth === null ? (
+            {netWorth === null && !isDemoMode ? (
               <Skeleton width="60%" height={32} />
             ) : (
               <>
-                <p className="text-[26px] font-700 tabular-nums">{fmtMoney(netWorth)}</p>
+                <p className="text-[26px] font-700 tabular-nums">{fmtMoney(isDemoMode ? DEMO_NET_WORTH : netWorth!)}</p>
                 <p className="text-[11px] text-text-3 mt-1">Bank + assets · tap for details</p>
               </>
             )}
@@ -207,7 +215,7 @@ export default function HomePage() {
                 {todos.slice(0, 3).map(t => (
                   <div key={t.id} className="flex items-center gap-2.5">
                     <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${t.done ? "bg-success" : "bg-accent"}`} />
-                    <span className={`text-[13px] truncate ${t.done ? "line-through text-text-3" : "text-text-1"}`}>{t.text}</span>
+                    <span className={`text-[13px] truncate ${t.done ? "line-through text-text-3" : "text-text-1"}`}>{isDemoMode ? demoGoalText(todos!.indexOf(t)) : t.text}</span>
                   </div>
                 ))}
                 {todos.length > 3 && (
@@ -224,11 +232,11 @@ export default function HomePage() {
         {/* Today's Log */}
         <Card>
           <CardHeader>
-            <Link href="/d/log" className="flex items-center gap-2 hover:text-accent transition-colors">
+            <Link href="/d/entry" className="flex items-center gap-2 hover:text-accent transition-colors">
               <BookOpen size={14} className="text-accent" />
-              <CardTitle>Today's Log</CardTitle>
+              <CardTitle>Today&apos;s Entry</CardTitle>
             </Link>
-            <Link href="/d/log"><ChevronRight size={14} className="text-text-3 hover:text-accent" /></Link>
+            <Link href="/d/entry"><ChevronRight size={14} className="text-text-3 hover:text-accent" /></Link>
           </CardHeader>
           {!logLoaded ? (
             <SkeletonRows count={4} />
@@ -282,6 +290,26 @@ export default function HomePage() {
               })}
             </div>
           )}
+        </Card>
+
+        {/* Life GPA */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <GraduationCap size={14} className="text-accent" />
+              <CardTitle>Life GPA</CardTitle>
+            </div>
+            <Link href="/d/entry"><ChevronRight size={14} className="text-text-3 hover:text-accent" /></Link>
+          </CardHeader>
+          <LifeGpaCard
+            logEntry={isDemoMode
+              ? { workout: true, nf: true, postedVideo: true, reflectedJournal: false, hoursWorked: 8 }
+              : (logLoaded ? logEntry : null)}
+            streaks={isDemoMode
+              ? { workout: 14, video: 7, journal: 21, nf: 30 }
+              : streaks}
+            loading={!isDemoMode && (!logLoaded || !streaks)}
+          />
         </Card>
 
         {/* Jays widget — gated; personal/Toronto feature */}
@@ -366,7 +394,7 @@ function MoreMenu() {
     { href: "/d/timeline",    icon: Clock,        label: "Timeline" },
     ...(config.features.jays ? [{ href: "/d/jays", icon: Trophy, label: "Blue Jays" }] : []),
     { href: "/d/year",        icon: TrendingUp,   label: "Year stats" },
-    { href: "/d/log/history", icon: BookOpen,     label: "Log history" },
+    { href: "/d/entry/history", icon: BookOpen,     label: "Entry history" },
   ];
 
   return (

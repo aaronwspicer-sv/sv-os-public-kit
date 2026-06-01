@@ -56,6 +56,10 @@ export async function GET() {
       dailyViews:       props["Daily Views "]?.number ?? 0, // trailing space in DB
       summaryOfDay:     props["🏁 Summary of Day"]?.rich_text?.[0]?.plain_text ?? "",
       mindsetNotes:     props["🧠 Mindset Notes"]?.rich_text?.[0]?.plain_text ?? "",
+      // Journal fields (added to Notion schema: Journal Title, Mood, Tags)
+      journalTitle:     props["Journal Title"]?.rich_text?.[0]?.plain_text ?? "",
+      mood:             props["Mood"]?.number ?? null,
+      tags:             (props["Tags"]?.multi_select ?? []).map((t: any) => t.name),
     };
 
     return NextResponse.json({ entry, dateLabel: label });
@@ -83,6 +87,10 @@ export async function POST(req: NextRequest) {
     "Daily Views ":                { number: body.dailyViews ?? 0 },
     "🏁 Summary of Day":            { rich_text: [{ text: { content: body.summaryOfDay ?? "" } }] },
     "🧠 Mindset Notes":             { rich_text: [{ text: { content: body.mindsetNotes ?? "" } }] },
+    // Journal fields — only written if present to avoid API errors on old DBs
+    ...(body.journalTitle != null ? { "Journal Title": { rich_text: [{ text: { content: String(body.journalTitle).slice(0, 2000) } }] } } : {}),
+    ...(body.mood        != null ? { "Mood":          { number: Number(body.mood) } } : {}),
+    ...(Array.isArray(body.tags) && body.tags.length > 0 ? { "Tags": { multi_select: body.tags.map((t: string) => ({ name: t })) } } : {}),
   };
 
   try {

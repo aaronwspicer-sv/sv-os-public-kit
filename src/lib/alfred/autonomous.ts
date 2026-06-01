@@ -9,6 +9,7 @@ import OpenAI from "openai";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@supabase/supabase-js";
 import { gatherUserData } from "@/lib/brief/userData";
+import { getEventsForDate } from "@/lib/calendar";
 import { fetchActiveSkill } from "./identity";
 import { saveMemory } from "./memory";
 import { defaultSkill } from "./defaultSkill";
@@ -78,6 +79,96 @@ export function detectPatterns(d: Awaited<ReturnType<typeof gatherUserData>>): P
   if (stalledEditing)   out.push({ severity: "warn", emoji: "🎬", text: `${pipeline["Editing"]} videos stuck in Editing.` });
 
   return out;
+}
+
+export interface DeadTimeSlot {
+  startHour: number; // local Toronto hour (0-23)
+  endHour: number;
+  durationMin: number;
+  label: string; // e.g. "2h gap — 10am to 12pm"
+}
+
+/**
+ * Find unscheduled blocks ≥ MIN_GAP_MIN during work hours (WORK_START..WORK_END)
+ * today in the Toronto timezone. Returns up to 3 slots, sorted by size desc.
+ */
+export async function detectDeadTime(
+  sb: SupabaseClient,
+  userId: string,
+): Promise<DeadTimeSlot[]> {
+  const WORK_START = 9;   // 9am
+  const WORK_END   = 19;  // 7pm
+  const MIN_GAP_MIN = 60; // at least 1h to count
+
+  const todayStr = new Date().toLocaleDateString("en-CA", { timeZone: config.locale.timezone });
+  const events = await getEventsForDate(sb, userId, todayStr);
+
+  // Convert to [startMin, endMin] relative to midnight Toronto, non-all-day only
+  type Block = [number, number];
+  const blocks: Block[] = events
+    .filter(e => !e.allDay)
+    .map(e => {
+      const toMin = (iso: string) => {
+        const d = new Date(iso);
+        // minutes since midnight in Toronto
+        const localStr = d.toLocaleTimeString("en-CA", { timeZone: config.locale.timezone, hour12: false });
+        const [hh, mm] = localStr.split(":").map(Number);
+        return hh * 60 + mm;
+      };
+      return [toMin(e.start), toMin(e.end)] as Block;
+    })
+    .filter(([s, e]) => e > s) // skip zero-length
+    .sort((a, b) => a[0] - b[0]);
+
+  // Merge overlapping blocks
+  const merged: Block[] = [];
+  for (const b of blocks) {
+    if (merged.length === 0 || b[0] >= merged[merged.length - 1][1]) {
+      merged.push([...b]);
+    } else {
+      merged[merged.length - 1][1] = Math.max(merged[merged.length - 1][1], b[1]);
+    }
+  }
+
+  // Clamp to work hours and find gaps
+  const slots: DeadTimeSlot[] = [];
+  let cursor = WORK_START * 60;
+  const workEnd = WORK_END * 60;
+
+  for (const [bs, be] of merged) {
+    const blockStart = Math.max(bs, WORK_START * 60);
+    const blockEnd   = Math.min(be, workEnd);
+    if (blockStart > cursor && blockStart - cursor >= MIN_GAP_MIN) {
+      const durMin = blockStart - cursor;
+      slots.push({
+        startHour: cursor / 60,
+        endHour:   blockStart / 60,
+        durationMin: durMin,
+        label: `${Math.round(durMin / 60 * 10) / 10}h gap — ${fmtHour(cursor / 60)} to ${fmtHour(blockStart / 60)}`,
+      });
+    }
+    cursor = Math.max(cursor, blockEnd);
+  }
+  // Trailing gap
+  if (workEnd - cursor >= MIN_GAP_MIN) {
+    const durMin = workEnd - cursor;
+    slots.push({
+      startHour: cursor / 60,
+      endHour:   WORK_END,
+      durationMin: durMin,
+      label: `${Math.round(durMin / 60 * 10) / 10}h gap — ${fmtHour(cursor / 60)} to ${fmtHour(WORK_END)}`,
+    });
+  }
+
+  return slots.sort((a, b) => b.durationMin - a.durationMin).slice(0, 3);
+}
+
+function fmtHour(h: number): string {
+  const whole = Math.floor(h);
+  const min   = Math.round((h - whole) * 60);
+  const label = whole >= 12 ? "pm" : "am";
+  const display = whole > 12 ? whole - 12 : whole === 0 ? 12 : whole;
+  return min === 0 ? `${display}${label}` : `${display}:${String(min).padStart(2, "0")}${label}`;
 }
 
 /** Short Alfred read on today (1-2 sentences) for the morning brief hero callout. */

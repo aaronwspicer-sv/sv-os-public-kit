@@ -9,7 +9,7 @@ import { config } from "@/config";
 
 const nav = [
   { href: "/d",          icon: Home,        label: "Home" },
-  { href: "/d/log",      icon: BookOpen,    label: "Daily Log" },
+  { href: "/d/entry",    icon: BookOpen,    label: "Daily Entry" },
   { href: "/d/goals",    icon: Target,      label: "Goals" },
   { href: "/d/finances", icon: DollarSign,  label: "Finances" },
   { href: "/d/content",  icon: Video,       label: "Content" },

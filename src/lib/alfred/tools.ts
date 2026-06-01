@@ -280,7 +280,7 @@ const navigate_to: ToolDef = {
   },
   execute: async ({ args }) => {
     const map: Record<string, string> = {
-      home: "/d", log: "/d/log", goals: "/d/goals", finances: "/d/finances",
+      home: "/d", log: "/d/entry", goals: "/d/goals", finances: "/d/finances",
       content: "/d/content", calendar: "/d/calendar", timeline: "/d/timeline",
       year: "/d/year", settings: "/d/settings", jays: "/d/jays",
     };

@@ -10,9 +10,50 @@ interface FinanceVaultGateProps {
   label?: string;
 }
 
-type Phase = "checking" | "locked" | "unlocking" | "unlocked";
+type Phase = "checking" | "locked" | "unlocking" | "unlocked" | "decoy";
 
 const TTL_SEC = 5 * 60;
+const DECOY_TRIGGER = 3; // failed attempts before showing decoy
+
+// Convincing but fake finance data for the decoy screen
+const DECOY_NET_WORTH = "$47,832";
+const DECOY_ACCOUNTS  = [
+  { name: "Main Chequing",        balance: "$8,432.17",  institution: "TD Bank",  type: "Chequing" },
+  { name: "High-Interest Savings", balance: "$22,400.00", institution: "EQ Bank",  type: "Savings" },
+  { name: "Visa Credit Card",     balance: "-$1,240.55", institution: "TD Bank",  type: "Credit" },
+];
+
+function DecoyDashboard() {
+  return (
+    <div className="flex flex-col gap-4 animate-fade-up">
+      <div className="flex items-center justify-between px-3 py-2 rounded-[10px] bg-[rgba(52,211,153,0.06)] border border-[rgba(52,211,153,0.18)]">
+        <div>
+          <p className="text-[10px] uppercase tracking-widest text-text-3 mb-0.5">Net Worth</p>
+          <p className="text-[28px] font-700 tabular-nums font-mono text-success">{DECOY_NET_WORTH}</p>
+        </div>
+        <div className="text-right">
+          <p className="text-[10px] text-text-3">This month</p>
+          <p className="text-[13px] font-700 text-success">+$1,240</p>
+        </div>
+      </div>
+      <div className="flex flex-col gap-2">
+        {DECOY_ACCOUNTS.map(a => (
+          <div key={a.name} className="flex items-center justify-between px-3 py-3 rounded-[10px] bg-[rgba(255,255,255,0.03)] border border-border-dim">
+            <div>
+              <p className="text-[13px] font-600 text-text-1">{a.name}</p>
+              <p className="text-[10px] text-text-3">{a.institution} · {a.type}</p>
+            </div>
+            <p className={`text-[14px] font-700 tabular-nums font-mono ${a.balance.startsWith("-") ? "text-danger" : "text-text-1"}`}>{a.balance}</p>
+          </div>
+        ))}
+      </div>
+      <div className="px-3 py-2.5 rounded-[10px] bg-[rgba(255,255,255,0.02)] border border-border-dim">
+        <p className="text-[10px] uppercase tracking-widest text-text-3 mb-1">Monthly burn rate</p>
+        <p className="text-[18px] font-700 tabular-nums font-mono text-text-1">$142.96<span className="text-[11px] font-400 text-text-3 ml-1">/ mo</span></p>
+      </div>
+    </div>
+  );
+}
 
 export function FinanceVaultGate({ children, label = "Finance Vault" }: FinanceVaultGateProps) {
   const [phase, setPhase] = useState<Phase>("checking");
@@ -22,6 +63,7 @@ export function FinanceVaultGate({ children, label = "Finance Vault" }: FinanceV
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [now, setNow] = useState(Date.now());
+  const [failCount, setFailCount] = useState(0);
   const pinRef = useRef<HTMLInputElement>(null);
 
   const refreshStatus = useCallback(async () => {
@@ -88,11 +130,22 @@ export function FinanceVaultGate({ children, label = "Finance Vault" }: FinanceV
       });
       const d = await r.json();
       if (!r.ok || !d.ok) {
+        const nextFail = failCount + 1;
+        setFailCount(nextFail);
+        if (nextFail >= DECOY_TRIGGER) {
+          // Silent decoy — pretend to unlock after a brief delay
+          await new Promise(r => setTimeout(r, 600));
+          setPhase("decoy");
+          setPin("");
+          setTotp("");
+          return;
+        }
         setError(d.error ?? "Unlock failed");
         setPin("");
         setTotp("");
         return;
       }
+      setFailCount(0);
       setExpiresAt(d.expiresAt);
       setPhase("unlocked");
       setPin("");
@@ -113,6 +166,19 @@ export function FinanceVaultGate({ children, label = "Finance Vault" }: FinanceV
     } finally {
       setBusy(false);
     }
+  }
+
+  if (phase === "decoy") {
+    return (
+      <div className="flex flex-col gap-4">
+        <div className="glass-1 rounded-[12px] px-3 py-2 flex items-center gap-2.5">
+          <ShieldCheck size={13} className="text-success" />
+          <span className="text-[11px] font-600 text-text-2">Vault unlocked · auto-locks in</span>
+          <span className="text-[11px] font-700 tabular-nums font-mono text-success">4:59</span>
+        </div>
+        <DecoyDashboard />
+      </div>
+    );
   }
 
   if (phase === "checking") {

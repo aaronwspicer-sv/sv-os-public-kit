@@ -43,14 +43,15 @@ export async function fireLoginAlert(ev: LoginEvent): Promise<void> {
 
     const alreadyAlerted = (recent?.length ?? 0) > 0;
 
-    // Always log the success, even if we don't email/push
-    await supabase.from("audit_log").insert({
-      user_id: ev.userId,
-      action: "login_success",
-      metadata: { ip: ev.ip, ua: summarizeUA(ev.userAgent), userAgent: ev.userAgent, email: ev.email, alertSuppressed: alreadyAlerted },
-    });
-
-    if (alreadyAlerted) return;
+    if (alreadyAlerted) {
+      // Still log the suppressed event (no email/push)
+      await supabase.from("audit_log").insert({
+        user_id: ev.userId,
+        action: "login_success",
+        metadata: { ip: ev.ip, ua: summarizeUA(ev.userAgent), userAgent: ev.userAgent, email: ev.email, alertSuppressed: true },
+      });
+      return;
+    }
 
     // Geo
     let geo: Record<string, string> = {};
@@ -64,16 +65,52 @@ export async function fireLoginAlert(ev: LoginEvent): Promise<void> {
 
     const ts = new Date().toLocaleString("en-CA", { timeZone: config.locale.timezone, dateStyle: "full", timeStyle: "long" });
 
+    // Is this country new? Check past 90 days of known login countries.
+    let isNewCountry = false;
+    if (geo.country) {
+      const since90d = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
+      const { data: history } = await supabase
+        .from("audit_log")
+        .select("metadata")
+        .eq("user_id", ev.userId)
+        .eq("action", "login_success")
+        .gte("created_at", since90d);
+      const knownCountries = new Set(
+        (history ?? [])
+          .map((r: any) => r.metadata?.country)
+          .filter(Boolean),
+      );
+      isNewCountry = !knownCountries.has(geo.country);
+    }
+
+    // Update the audit row with geo + new-country flag
+    await supabase.from("audit_log").insert({
+      user_id: ev.userId,
+      action: "login_success",
+      metadata: {
+        ip: ev.ip, ua: summarizeUA(ev.userAgent), userAgent: ev.userAgent,
+        email: ev.email, country: geo.country, city: geo.city,
+        isNewCountry, alertSuppressed: false,
+      },
+    });
+
     // Email
+    const newCountryWarning = isNewCountry
+      ? `<div style="margin:12px 0;padding:12px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.3);border-radius:8px;color:#fbbf24;font-weight:700;">⚠️ First login ever from ${escapeHtml(geo.country)} — if this wasn't you, revoke all sessions from Settings immediately.</div>`
+      : "";
+
     if (process.env.RESEND_API_KEY) {
       const resend = new Resend(process.env.RESEND_API_KEY);
       await resend.emails.send({
         from: config.brand.emailFrom,
         to:   OWNER_EMAIL,
-        subject: `✅ Login from ${geo.city ? `${geo.city}, ${geo.country}` : ev.ip}`,
+        subject: isNewCountry
+          ? `🚨 Login from NEW country: ${geo.country ?? ev.ip}`
+          : `✅ Login from ${geo.city ? `${geo.city}, ${geo.country}` : ev.ip}`,
         html: `
           <div style="font-family: monospace; background:#0a0a0a; color:#e0e0e0; padding:24px; border-radius:8px; max-width:600px;">
-            <h2 style="color:#34d399; margin:0 0 16px;">✅ Successful Login</h2>
+            <h2 style="color:${isNewCountry ? "#fbbf24" : "#34d399"}; margin:0 0 16px;">${isNewCountry ? "🚨 New Country Login" : "✅ Successful Login"}</h2>
+            ${newCountryWarning}
             <table style="width:100%; border-collapse:collapse;">
               <tr><td style="color:#888; padding:4px 0; width:120px;">Time</td><td style="color:#fff;">${escapeHtml(ts)}</td></tr>
               <tr><td style="color:#888; padding:4px 0;">Email</td><td style="color:#fff;">${escapeHtml(ev.email)}</td></tr>
@@ -83,19 +120,22 @@ export async function fireLoginAlert(ev: LoginEvent): Promise<void> {
               <tr><td style="color:#888; padding:4px 0;">Device</td><td style="color:#fff;">${escapeHtml(summarizeUA(ev.userAgent))}</td></tr>
             </table>
             <p style="margin:16px 0 0; color:#666; font-size:11px;">
-              If this wasn't you, sign out everywhere from Settings and rotate your Google/email password immediately.
+              If this wasn't you, sign out everywhere from Settings and rotate your credentials immediately.
             </p>
           </div>
         `,
       });
     }
 
-    // Push
+    // Push — high-priority for new countries
     await sendPushToUser(ev.userId, {
-      title: `✅ New login · ${geo.city ?? ev.ip}`,
+      title: isNewCountry
+        ? `🚨 New country login: ${geo.country ?? ev.ip}`
+        : `✅ New login · ${geo.city ?? ev.ip}`,
       body:  `${summarizeUA(ev.userAgent)} · ${geo.country ?? ev.ip}`,
       url:   "/d/settings",
       tag:   "login-success",
+      requireInteraction: isNewCountry,
     }).catch(() => {});
   } catch (e: any) {
     console.error("Login alert failed:", e?.message);

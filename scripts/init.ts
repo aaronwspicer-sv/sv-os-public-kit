@@ -55,7 +55,7 @@ const hex = (bytes: number) => randomBytes(bytes).toString("hex");
 const b64 = (bytes: number) => randomBytes(bytes).toString("base64");
 
 (async () => {
-  console.log(C.bold("\n  Spicer OS — setup\n"));
+  console.log(C.bold("\n  Self-host setup\n"));
   console.log(C.dim("  This writes .env.local. Secrets are auto-generated; you'll paste API keys.\n"));
 
   const envPath = join(process.cwd(), ".env.local");
