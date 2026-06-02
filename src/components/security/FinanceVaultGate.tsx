@@ -4,6 +4,7 @@ import { startAuthentication } from "@simplewebauthn/browser";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Vault, ShieldCheck, Lock, Unlock, Fingerprint } from "lucide-react";
+import { config } from "@/config";
 
 interface FinanceVaultGateProps {
   children: React.ReactNode;
@@ -56,6 +57,26 @@ function DecoyDashboard() {
 }
 
 export function FinanceVaultGate({ children, label = "Finance Vault" }: FinanceVaultGateProps) {
+  // Public demo: no auth means no real vault. Show the (fake) finance data as a
+  // simulation, with a banner so visitors understand the real OS gates this.
+  // (Thin wrapper — keeps the real gate's hooks unconditional.)
+  if (config.isPublicDemo) {
+    return (
+      <div className="flex flex-col gap-4">
+        <div className="glass-1 rounded-[12px] px-3 py-2.5 flex items-start gap-2.5 border border-[rgba(167,139,250,0.32)]">
+          <ShieldCheck size={14} className="text-[#a78bfa] flex-shrink-0 mt-0.5" />
+          <span className="text-[11px] font-600 text-text-2 leading-snug">
+            Simulated view — in the real OS your finances live behind a separate vault: PIN + 2FA + biometric, auto-relocking every 5 minutes. This demo skips the lock so you can look around.
+          </span>
+        </div>
+        {children}
+      </div>
+    );
+  }
+  return <RealFinanceVaultGate label={label}>{children}</RealFinanceVaultGate>;
+}
+
+function RealFinanceVaultGate({ children, label = "Finance Vault" }: FinanceVaultGateProps) {
   const [phase, setPhase] = useState<Phase>("checking");
   const [expiresAt, setExpiresAt] = useState<number | null>(null);
   const [pin, setPin] = useState("");
