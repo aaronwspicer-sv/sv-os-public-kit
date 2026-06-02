@@ -49,6 +49,14 @@ export function GuidedTour({
     return () => { alive = false; };
   }, [mode]);
 
+  // Drive the real page into view as the tour advances, so visitors actually
+  // SEE each page (the card docks at the bottom; the page shows above it).
+  useEffect(() => {
+    const c = cards[idx];
+    if (c?.type === "stop") router.push(c.stop.route);
+    else if (c?.type === "intro") router.push("/d");
+  }, [idx, cards, router]);
+
   const card = cards[idx];
   const isFirst = idx === 0;
   const isLast = idx === cards.length - 1;
@@ -62,8 +70,8 @@ export function GuidedTour({
   function startFirstEntry() { finish(); router.push("/d/entry"); }
 
   return (
-    <div className="fixed inset-0 z-[120] flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm p-3 sm:p-6">
-      <div className="w-full max-w-md glass-2 rounded-[20px] border border-border-dim overflow-hidden">
+    <div className="fixed inset-x-0 bottom-0 z-[120] flex justify-center p-3 sm:p-5 pointer-events-none">
+      <div className="w-full max-w-md glass-2 rounded-[20px] border border-border-dim overflow-hidden pointer-events-auto shadow-[0_8px_40px_rgba(0,0,0,0.55)] max-h-[72vh] overflow-y-auto">
         {/* Progress */}
         <div className="flex gap-1 px-5 pt-5">
           {cards.map((_, i) => (
