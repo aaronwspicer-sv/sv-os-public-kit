@@ -1,5 +1,6 @@
 "use client";
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { config } from "@/config";
 
 const STORAGE_KEY = "spicer_demo_mode";
 
@@ -18,15 +19,18 @@ const DemoModeContext = createContext<DemoModeContextValue>({
 });
 
 export function DemoModeProvider({ children }: { children: React.ReactNode }) {
-  const [isDemoMode, setIsDemoMode] = useState(false);
+  // On the public demo deploy, demo mode is forced ON and can't be turned off.
+  const [isDemoMode, setIsDemoMode] = useState(config.isPublicDemo);
 
   useEffect(() => {
+    if (config.isPublicDemo) return; // forced on — ignore localStorage
     try {
       setIsDemoMode(localStorage.getItem(STORAGE_KEY) === "1");
     } catch {}
   }, []);
 
   const set = useCallback((val: boolean) => {
+    if (config.isPublicDemo) return; // can't toggle off the public demo
     setIsDemoMode(val);
     try { val ? localStorage.setItem(STORAGE_KEY, "1") : localStorage.removeItem(STORAGE_KEY); } catch {}
   }, []);

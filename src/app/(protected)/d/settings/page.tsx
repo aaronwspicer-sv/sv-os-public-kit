@@ -19,7 +19,7 @@ import { AlfredMemories } from "@/components/settings/AlfredMemories";
 import { AlfredKillSwitch } from "@/components/settings/AlfredKillSwitch";
 import { WakeWordSetting } from "@/components/settings/WakeWordSetting";
 import { CalendarFeeds } from "@/components/settings/CalendarFeeds";
-import { Shield, Key, Lock, Bell, History, ChevronDown, ChevronUp, User, Fingerprint, Activity, ChevronRight, EyeOff } from "lucide-react";
+import { Shield, Key, Lock, Bell, History, ChevronDown, ChevronUp, User, Fingerprint, Activity, ChevronRight, EyeOff, Compass } from "lucide-react";
 import Link from "next/link";
 import { useDemoMode } from "@/components/ui/DemoModeContext";
 
@@ -99,6 +99,25 @@ export default function SettingsPage() {
           <ChevronRight size={16} className="text-text-3" />
         </Card>
       </Link>
+
+      {/* Replay the Alfred-guided walkthrough */}
+      <div className="animate-fade-up stagger-2">
+        <button
+          onClick={() => { try { window.dispatchEvent(new Event("os:replay-tour")); } catch {} }}
+          className="w-full"
+        >
+          <Card interactive className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-[12px] bg-[rgba(29,155,240,0.10)] border border-[rgba(29,155,240,0.22)] flex items-center justify-center flex-shrink-0">
+              <Compass size={18} className="text-accent" />
+            </div>
+            <div className="flex-1 min-w-0 text-left">
+              <p className="text-[14px] font-600 text-text-1">Replay walkthrough</p>
+              <p className="text-[11px] text-text-3 mt-0.5">Have Alfred tour the OS again</p>
+            </div>
+            <ChevronRight size={16} className="text-text-3" />
+          </Card>
+        </button>
+      </div>
 
       {/* Theme */}
       <div className="animate-fade-up stagger-2">

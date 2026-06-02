@@ -6,6 +6,7 @@
 import { useEffect, useState } from "react";
 import { OnboardingWizard } from "./OnboardingWizard";
 import { GuidedTour } from "./GuidedTour";
+import { config } from "@/config";
 
 export function OnboardingGate({ children }: { children: React.ReactNode }) {
   // null = still checking; true = show wizard; false = onboarded, show app
@@ -14,6 +15,18 @@ export function OnboardingGate({ children }: { children: React.ReactNode }) {
   const [showTour, setShowTour] = useState(false);
 
   useEffect(() => {
+    // Public demo: no auth, no wizard — just run the demo walkthrough once per
+    // browser session.
+    if (config.isPublicDemo) {
+      setNeedsOnboarding(false);
+      try {
+        if (sessionStorage.getItem("os_demo_tour_seen") !== "1") {
+          setShowTour(true);
+          sessionStorage.setItem("os_demo_tour_seen", "1");
+        }
+      } catch { setShowTour(true); }
+      return;
+    }
     let alive = true;
     fetch("/api/onboarding")
       .then(r => r.json())
@@ -22,6 +35,14 @@ export function OnboardingGate({ children }: { children: React.ReactNode }) {
       // broken onboarding check.
       .catch(() => { if (alive) setNeedsOnboarding(false); });
     return () => { alive = false; };
+  }, []);
+
+  // Settings → "Replay walkthrough" dispatches this so the owner can re-run
+  // the tour anytime.
+  useEffect(() => {
+    const onReplay = () => setShowTour(true);
+    window.addEventListener("os:replay-tour", onReplay);
+    return () => window.removeEventListener("os:replay-tour", onReplay);
   }, []);
 
   async function handleDone(tier: string) {
@@ -41,7 +62,7 @@ export function OnboardingGate({ children }: { children: React.ReactNode }) {
     <>
       {children}
       {needsOnboarding === true && <OnboardingWizard onDone={handleDone} />}
-      {showTour && <GuidedTour mode="onboarding" onDone={() => setShowTour(false)} />}
+      {showTour && <GuidedTour mode={config.isPublicDemo ? "demo" : "onboarding"} onDone={() => setShowTour(false)} />}
     </>
   );
 }

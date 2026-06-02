@@ -29,6 +29,13 @@ function envNum(value: string | undefined, fallback: number): number {
 }
 
 export const config = {
+  // ── Public demo deploy ──────────────────────────────────────
+  // When NEXT_PUBLIC_DEMO_MODE=true, this build is a throwaway PUBLIC demo:
+  // login is bypassed, all data is faked (demo mode forced on), and Alfred
+  // answers from canned scripts. NEVER set this on a real deploy — it serves
+  // the OS shell without auth. Unset/false everywhere except demo.spicervisions.
+  isPublicDemo: process.env.NEXT_PUBLIC_DEMO_MODE === "true",
+
   // ── Owner identity ──────────────────────────────────────────
   owner: {
     /** First name — greetings, Alfred persona, brief emails.

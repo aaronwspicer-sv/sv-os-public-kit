@@ -15,22 +15,28 @@ import { BootGate } from "@/components/BootGate";
 import { OnboardingGate } from "@/components/onboarding/OnboardingGate";
 import { DemoModeProvider } from "@/components/ui/DemoModeContext";
 import { DemoModeBanner } from "@/components/ui/DemoModeBanner";
+import { config } from "@/config";
 
 export default async function ProtectedLayout({ children }: { children: React.ReactNode }) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  // Public demo deploy: skip auth entirely and render the shell with fake data.
+  // (middleware already lets these requests through.) Real deploys never set
+  // NEXT_PUBLIC_DEMO_MODE, so this branch is dead code in production.
+  if (!config.isPublicDemo) {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
 
-  // Not logged in
-  if (!user) redirect("/login");
+    // Not logged in
+    if (!user) redirect("/login");
 
-  // Wrong account — sign out and block. Single source of truth in lib/auth
-  // (which lowercases the comparison). Previously this file had its own
-  // copy of the allowlist that did NOT lowercase, so a Supabase user whose
-  // stored email had any uppercase characters (e.g. "Aaronwspicer@…")
-  // would pass middleware + auth.ts but get signed out here.
-  if (!isAllowedEmail(user.email)) {
-    await supabase.auth.signOut();
-    redirect("/login?error=unauthorized");
+    // Wrong account — sign out and block. Single source of truth in lib/auth
+    // (which lowercases the comparison). Previously this file had its own
+    // copy of the allowlist that did NOT lowercase, so a Supabase user whose
+    // stored email had any uppercase characters (e.g. "Aaronwspicer@…")
+    // would pass middleware + auth.ts but get signed out here.
+    if (!isAllowedEmail(user.email)) {
+      await supabase.auth.signOut();
+      redirect("/login?error=unauthorized");
+    }
   }
 
   return (

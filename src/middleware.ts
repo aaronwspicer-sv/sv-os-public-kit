@@ -71,6 +71,17 @@ export async function middleware(request: NextRequest) {
 
   let supabaseResponse = NextResponse.next({ request: { headers: requestHeaders } });
 
+  // ── PUBLIC DEMO DEPLOY ──
+  // When explicitly enabled, this build is a throwaway public demo: no auth at
+  // all, every page shows fake data (demo mode forced on), Alfred is canned.
+  // Return before any Supabase/auth logic. Gated on an env var that is only
+  // ever set on demo.spicervisions.online — real deploys leave it unset.
+  if (process.env.NEXT_PUBLIC_DEMO_MODE === "true") {
+    supabaseResponse.headers.set("Content-Security-Policy", buildCsp(nonce));
+    supabaseResponse.headers.set("x-nonce", nonce);
+    return supabaseResponse;
+  }
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,

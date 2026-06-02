@@ -4,6 +4,8 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Sparkles, X, Send, RefreshCcw, Wrench, ChevronDown, Image as ImageIcon, Trash2, Mic, MicOff, Square, Volume2, VolumeX, Headphones, Radio, PhoneOff, History, Pencil, Check } from "lucide-react";
 import { useRealtime } from "@/lib/alfred/useRealtime";
 import { useRouter } from "next/navigation";
+import { config } from "@/config";
+import { cannedAlfredAnswer, DEMO_ALFRED_PROMPTS } from "@/lib/demoAlfred";
 
 // Voice settings
 const VOICE_KEY  = "alfred_voice";        // OpenAI TTS voice id
@@ -652,8 +654,8 @@ export function AlfredFab() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [messages, ttsOn, convoMode]);
 
-  const send = useCallback(async () => {
-    let text = input.trim();
+  const send = useCallback(async (override?: string) => {
+    let text = (typeof override === "string" ? override : input).trim();
     // Allow image-only sends with a placeholder prompt
     if (!text && pendingImages.length > 0) text = "Look at this and tell me what you think.";
     if (!text || busy) return;
@@ -678,6 +680,20 @@ export function AlfredFab() {
     const newUserMsg: Msg = { role: "user", content: text, imageThumbs: imagesForTurn };
     const newAssistantMsg: Msg = { role: "assistant", content: "", tools: [], phase: "thinking" };
     setMessages(prev => [...prev, newUserMsg, newAssistantMsg]);
+
+    // Public demo: no API. Answer from the canned script after a short beat.
+    if (config.isPublicDemo) {
+      const answer = cannedAlfredAnswer(text);
+      window.setTimeout(() => {
+        setMessages(prev => {
+          const copy = [...prev];
+          copy[copy.length - 1] = { role: "assistant", content: answer, phase: "done" };
+          return copy;
+        });
+        setBusy(false);
+      }, 500);
+      return;
+    }
 
     try {
       const res = await fetch("/api/alfred/chat", {
@@ -1090,15 +1106,15 @@ export function AlfredFab() {
             <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
               {messages.length === 0 && (
                 <div className="text-[12px] text-text-3 text-center py-8">
-                  <p className="mb-3">Ask anything. He sees the full OS.</p>
+                  <p className="mb-3">{config.isPublicDemo ? "Tap a question — this is a live demo." : "Ask anything. He sees the full OS."}</p>
                   <div className="flex flex-col gap-1.5 max-w-[300px] mx-auto text-left">
-                    {[
+                    {(config.isPublicDemo ? DEMO_ALFRED_PROMPTS : [
                       "What should I focus on today?",
                       "Run my weekly review",
                       "How am I tracking vs my goals?",
                       "What was I doing one year ago?",
-                    ].map(s => (
-                      <button key={s} onClick={() => setInput(s)} className="px-3 py-2 rounded-[10px] border border-border-dim hover:border-accent/40 bg-[rgba(255,255,255,0.02)] text-[11px] text-text-2 text-left transition-all">
+                    ]).map(s => (
+                      <button key={s} onClick={() => { config.isPublicDemo ? send(s) : setInput(s); }} className="px-3 py-2 rounded-[10px] border border-border-dim hover:border-accent/40 bg-[rgba(255,255,255,0.02)] text-[11px] text-text-2 text-left transition-all">
                         {s}
                       </button>
                     ))}
@@ -1256,7 +1272,7 @@ export function AlfredFab() {
                   className="flex-1 px-3 py-2 text-[13px] resize-none max-h-32 min-h-[40px]"
                 />
                 <button
-                  onClick={send}
+                  onClick={() => send()}
                   disabled={busy || (!input.trim() && pendingImages.length === 0)}
                   className="w-10 h-10 rounded-[12px] flex items-center justify-center text-black disabled:opacity-30"
                   style={{ background: "linear-gradient(135deg, #1d9bf0, #a78bfa)" }}
