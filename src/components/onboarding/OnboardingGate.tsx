@@ -5,10 +5,13 @@
 // through) for already-onboarded users.
 import { useEffect, useState } from "react";
 import { OnboardingWizard } from "./OnboardingWizard";
+import { GuidedTour } from "./GuidedTour";
 
 export function OnboardingGate({ children }: { children: React.ReactNode }) {
   // null = still checking; true = show wizard; false = onboarded, show app
   const [needsOnboarding, setNeedsOnboarding] = useState<boolean | null>(null);
+  // After the wizard finishes, run the Alfred-guided tour over the revealed OS.
+  const [showTour, setShowTour] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -29,6 +32,7 @@ export function OnboardingGate({ children }: { children: React.ReactNode }) {
       });
     } catch { /* best-effort — reveal the app regardless */ }
     setNeedsOnboarding(false);
+    setShowTour(true); // reveal the OS, then walk them through it
   }
 
   // While checking, render the app underneath (BootSplash already covers the
@@ -37,6 +41,7 @@ export function OnboardingGate({ children }: { children: React.ReactNode }) {
     <>
       {children}
       {needsOnboarding === true && <OnboardingWizard onDone={handleDone} />}
+      {showTour && <GuidedTour mode="onboarding" onDone={() => setShowTour(false)} />}
     </>
   );
 }
