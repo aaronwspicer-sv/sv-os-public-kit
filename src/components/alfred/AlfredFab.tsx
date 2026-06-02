@@ -615,15 +615,15 @@ export function AlfredFab() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      // ⌘⇧J — toggle voice mode in the open chat panel
-      if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === "j" || e.key === "J" || e.code === "KeyJ")) {
+      // ⌘⇧J — toggle voice mode in the open chat panel (disabled in demo)
+      if (!config.isPublicDemo && (e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === "j" || e.key === "J" || e.code === "KeyJ")) {
         e.preventDefault();
         setOpen(true);
         setTimeout(() => { toggleVoice(); }, 80);
         return;
       }
-      // ⌘⇧A — push-to-talk transcription in chat
-      if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === "a" || e.key === "A" || e.code === "KeyA")) {
+      // ⌘⇧A — push-to-talk transcription in chat (disabled in demo)
+      if (!config.isPublicDemo && (e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === "a" || e.key === "A" || e.code === "KeyA")) {
         e.preventDefault();
         setOpen(true);
         setTimeout(() => {
@@ -909,6 +909,8 @@ export function AlfredFab() {
                     </>
                   )}
                 </div>
+                {/* Voice controls hidden in the public demo (no API keys). */}
+                {!config.isPublicDemo && (<>
                 {/* Live voice (Realtime) — same chat thread */}
                 <button
                   onClick={toggleVoice}
@@ -976,6 +978,7 @@ export function AlfredFab() {
                     </>
                   )}
                 </div>
+                </>)}
                 <button onClick={openThreads} className={`p-1.5 rounded-md transition-all ${threadsOpen ? "bg-accent-dim text-accent" : "hover:bg-[rgba(255,255,255,0.06)] text-text-3"}`} title="Conversation history">
                   <History size={14} />
                 </button>
@@ -1240,6 +1243,7 @@ export function AlfredFab() {
                 >
                   <ImageIcon size={15} />
                 </button>
+                {!config.isPublicDemo && (
                 <button
                   onClick={() => { if (recording) stopRecording(); else startRecording().catch(() => {}); }}
                   disabled={busy || transcribing}
@@ -1254,6 +1258,7 @@ export function AlfredFab() {
                 >
                   {recording ? <Square size={14} /> : transcribing ? <span className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" /> : <Mic size={15} />}
                 </button>
+                )}
                 <textarea
                   ref={inputRef}
                   value={input}
