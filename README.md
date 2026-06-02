@@ -63,8 +63,10 @@ exact databases, property names, and links.
 
 ### 4. Allowlist
 
-Add your email to `src/lib/ownerAllowlist.ts` (this is what gates the whole
-app to you).
+Set `OWNER_EMAIL=you@example.com` in your env — that's the only account that
+can log in (this is what gates the whole app to you). `npm run init` sets it
+for you. No code editing needed; for multiple addresses use
+`OWNER_EMAILS=a@x.com,b@y.com`.
 
 ### 5. Run / deploy
 
