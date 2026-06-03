@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/Button";
 import { Skeleton, SkeletonRows } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { useToast } from "@/components/ui/ToastProvider";
+import { useDemoMode } from "@/components/ui/DemoModeContext";
+import { DEMO_VIDEOS, DEMO_IDEAS } from "@/lib/demoMode";
 import {
   Plus, Music2, Eye, Calendar as CalendarIcon, TrendingUp, Sparkles,
   Image as ImageIcon, ExternalLink, AlertTriangle, ChevronRight,
@@ -97,7 +99,9 @@ export default function ContentPage() {
   const [captureType, setCaptureType] = useState<VidType>("Long Form");
   const [captureBusy, setCaptureBusy] = useState(false);
 
+  const { isDemoMode } = useDemoMode();
   const load = useCallback(async () => {
+    if (isDemoMode) { setVideos(DEMO_VIDEOS as any); return; }
     try {
       const r = await fetch("/api/notion/videos");
       const d = await r.json();
@@ -106,7 +110,7 @@ export default function ContentPage() {
     } catch (e: any) {
       toast.error("Network error", e?.message);
     }
-  }, [toast]);
+  }, [toast, isDemoMode]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -946,6 +950,7 @@ interface Idea {
 
 function InboxTab({ onPromoted }: { onPromoted: () => void }) {
   const toast = useToast();
+  const { isDemoMode } = useDemoMode();
   const [ideas, setIdeas] = useState<Idea[] | null>(null);
   const [filter, setFilter] = useState<"all" | "pending" | "promoted">("pending");
   const [captureText, setCaptureText] = useState("");
@@ -956,6 +961,7 @@ function InboxTab({ onPromoted }: { onPromoted: () => void }) {
   const [busyId, setBusyId] = useState<string | null>(null);
 
   async function load() {
+    if (isDemoMode) { setIdeas(DEMO_IDEAS as any); return; }
     try {
       const r = await fetch("/api/ideas");
       const d = await r.json();

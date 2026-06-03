@@ -68,13 +68,15 @@ export default function YearPage() {
   const [loadingPrev, setLoadingPrev] = useState(false);
 
   useEffect(() => {
+    if (isDemoMode) { setLoading(false); return; } // demo renders from DEMO_* constants
     setLoading(true);
     setData(null);
     fetch(`/api/year-stats?year=${year}`)
       .then(r => r.json())
       .then(d => { if (d && !d.error) setData(d); })
+      .catch(() => {})
       .finally(() => setLoading(false));
-  }, [year]);
+  }, [year, isDemoMode]);
 
   useEffect(() => {
     if (!compare) { setPrevData(null); return; }
@@ -149,11 +151,19 @@ export default function YearPage() {
         </div>
       )}
 
-      {loading || !data ? (
+      {isDemoMode ? (
+        <Card>
+          <p className="text-[13px] text-text-3 text-center py-10">📊 Your year in review — in the full OS this fills with your whole year of habits, money, and output. The demo skips the heavy year data.</p>
+        </Card>
+      ) : loading ? (
         <>
           <Card><SkeletonRows count={4} /></Card>
           <Card><SkeletonRows count={3} /></Card>
         </>
+      ) : !data ? (
+        <Card>
+          <p className="text-[13px] text-text-3 text-center py-10">No data for {year} yet — log some days and your year fills in here.</p>
+        </Card>
       ) : (
         <>
           {/* Heatmap */}

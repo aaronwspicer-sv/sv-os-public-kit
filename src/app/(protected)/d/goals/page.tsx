@@ -91,6 +91,12 @@ export default function GoalsPage() {
 
   // Load todos from Supabase
   useEffect(() => {
+    if (isDemoMode) {
+      setTodayGoals(Array.from({ length: 4 }, (_, i) => ({ id: `d${i}`, text: demoGoalText(i), done: i === 0, queued: false, date: todayStr })));
+      setTomorrow(Array.from({ length: 2 }, (_, i) => ({ id: `dm${i}`, text: demoGoalText(i + 4), done: false, queued: true, date: tomorrowStr })));
+      setLoadingTodos(false);
+      return;
+    }
     fetch("/api/todos")
       .then(async r => {
         const data = await r.json();
@@ -100,10 +106,16 @@ export default function GoalsPage() {
       })
       .catch(e => setTodosError(e?.message ?? "Network error"))
       .finally(() => setLoadingTodos(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Load life goals from Notion
   useEffect(() => {
+    if (isDemoMode) {
+      setLifeGoals(Array.from({ length: 3 }, (_, i) => ({ id: `lg${i}`, title: demoLifeGoalTitle(i), current: 0, target: 100 })) as any);
+      setLoadingGoals(false);
+      return;
+    }
     fetch("/api/notion/goals")
       .then(async r => {
         const data = await r.json();
@@ -112,6 +124,7 @@ export default function GoalsPage() {
       })
       .catch(e => setGoalsError(e?.message ?? "Network error"))
       .finally(() => setLoadingGoals(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const doneCount = todayGoals.filter(g => g.done).length;

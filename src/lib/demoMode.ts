@@ -76,3 +76,31 @@ export function demoGoalText(index: number): string {
 export function demoLifeGoalTitle(index: number): string {
   return DEMO_LIFE_GOAL_TITLES[index % DEMO_LIFE_GOAL_TITLES.length];
 }
+
+// ── Content pipeline (the /d/content page) ───────────────────
+// Shaped like the page's VideoEntry. Mix of Live (for top performers) +
+// in-flight stages + one going live this week.
+function demoVid(p: Partial<any> & { id: string; title: string; status: string; pillar: string }) {
+  return {
+    notionUrl: null, type: "Long Form", platform: ["YouTube"], effortLevel: "Medium",
+    publishDate: null, views: 0, thumbnail: null, finalVideo: null, slug: null,
+    notes: "", parentVideoId: null, shortFormClipIds: [], viralInspirationId: null,
+    ...p,
+  };
+}
+export const DEMO_VIDEOS = [
+  demoVid({ id: "dv1", title: "I built my own AI to run my life", status: "Live", pillar: "Process", views: 48200, publishDate: "2026-05-20", effortLevel: "High" }),
+  demoVid({ id: "dv2", title: "Why I sold my console to fund the dream", status: "Live", pillar: "Journey", views: 21400, publishDate: "2026-05-06" }),
+  demoVid({ id: "dv3", title: "Building in public — month one", status: "Live", pillar: "Proof", views: 9800, publishDate: "2026-05-13" }),
+  demoVid({ id: "dv4", title: "The launch video (editing now)", status: "Editing", pillar: "Process", publishDate: "2026-06-04", effortLevel: "High" }),
+  demoVid({ id: "dv5", title: "30 days of showing up", status: "Filming", pillar: "Proof" }),
+  demoVid({ id: "dv6", title: "What my differences taught me about leverage", status: "Scripting", pillar: "Journey" }),
+  demoVid({ id: "dv7", title: "The system behind everything", status: "Idea", pillar: "Lessons" }),
+];
+
+// ── Idea inbox (the /d/content InboxTab) ─────────────────────
+export const DEMO_IDEAS = [
+  { id: "di1", text: "Reaction: my first paid invoice and what it unlocked", source: "voice note", promoted: false, promoted_at: null, notion_page_id: null, created_at: "2026-05-30" },
+  { id: "di2", text: "Tutorial: wiring Alfred into a Notion database", source: null, promoted: false, promoted_at: null, notion_page_id: null, created_at: "2026-05-28" },
+  { id: "di3", text: "Story: the 10/30 chemistry test that flipped a switch", source: null, promoted: false, promoted_at: null, notion_page_id: null, created_at: "2026-05-25" },
+];
