@@ -5,7 +5,7 @@ import { Sparkles, X, Send, RefreshCcw, Wrench, ChevronDown, Image as ImageIcon,
 import { useRealtime } from "@/lib/alfred/useRealtime";
 import { useRouter } from "next/navigation";
 import { config } from "@/config";
-import { cannedAlfredAnswer, DEMO_ALFRED_PROMPTS } from "@/lib/demoAlfred";
+import { cannedAlfred, demoAudioSrc, DEMO_ALFRED_PROMPTS } from "@/lib/demoAlfred";
 
 // Voice settings
 const VOICE_KEY  = "alfred_voice";        // OpenAI TTS voice id
@@ -681,9 +681,12 @@ export function AlfredFab() {
     const newAssistantMsg: Msg = { role: "assistant", content: "", tools: [], phase: "thinking" };
     setMessages(prev => [...prev, newUserMsg, newAssistantMsg]);
 
-    // Public demo: no API. Answer from the canned script after a short beat.
+    // Public demo: no API. Answer from the canned script + speak the matching
+    // pre-recorded clip. Play immediately (still inside the click gesture so
+    // browsers allow autoplay); no-ops if the clip file isn't present yet.
     if (config.isPublicDemo) {
-      const answer = cannedAlfredAnswer(text);
+      const { id, answer } = cannedAlfred(text);
+      try { const a = new Audio(demoAudioSrc(id)); a.play().catch(() => {}); } catch {}
       window.setTimeout(() => {
         setMessages(prev => {
           const copy = [...prev];
