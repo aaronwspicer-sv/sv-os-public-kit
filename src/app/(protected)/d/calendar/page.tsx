@@ -7,17 +7,17 @@ import { Badge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { config } from "@/config";
+import { useDemoMode } from "@/components/ui/DemoModeContext";
 
 // ── Google Calendar embed config ──────────────────────────────
-// Base64 calendar IDs from your Google Calendar embed URL (6 calendars)
-const CAL_SRCS = [
-  "YWFyb253c3BpY2VyQHNwaWNlcnZpc2lvbnMub25saW5l",
-  "ZW4tZ2IuY2FuYWRpYW4jaG9saWRheUBncm91cC52LmNhbGVuZGFyLmdvb2dsZS5jb20",
-  "YXNwaWNlckBodWRzb25jb2xsZWdlLmNh",
-  "aHVkc29uY29sbGVnZS5jYV9vbjJ2NWg2MmFibXB1YnRxaHU1ZnVyZ2Fkc0Bncm91cC5jYWxlbmRhci5nb29nbGUuY29t",
-  "aHVkc29uY29sbGVnZS5jYV92ajNqNm80Z2NvYWowdGpmdmQyc29nNjhwNEBncm91cC5jYWxlbmRhci5nb29nbGUuY29t",
-  "dGhlbmV3YXdzMjAyMEBnbWFpbC5jb20",
-] as const;
+// Base64 calendar src IDs from your Google Calendar embed URL. Set them via
+// NEXT_PUBLIC_GCAL_SRCS (comma-separated) so they aren't hardcoded. The
+// DEFAULT_CAL_SRCS below are the owner's and are emptied in the published kit.
+const DEFAULT_CAL_SRCS: string[] = [];
+const CAL_SRCS: string[] = (() => {
+  const env = process.env.NEXT_PUBLIC_GCAL_SRCS?.split(",").map(s => s.trim()).filter(Boolean);
+  return env && env.length ? env : DEFAULT_CAL_SRCS;
+})();
 const COLORS = [
   "%23039be5", "%230b8043", "%23f4511e", "%23c0ca33", "%23c0ca33", "%23009688",
 ] as const;
@@ -56,6 +56,7 @@ const PILLAR_COLOR: Record<string, string> = {
 
 // ── Page ─────────────────────────────────────────────────────
 export default function CalendarPage() {
+  const { isDemoMode } = useDemoMode();
   const [mode, setMode] = useState<typeof VIEWS[number]["key"]>("WEEK");
   const [iframeExpanded, setIframeExpanded] = useState(false);
 
@@ -66,10 +67,31 @@ export default function CalendarPage() {
   const [logLoaded, setLogLoaded] = useState(false);
 
   useEffect(() => {
+    if (isDemoMode) {
+      // Never touch the real calendar in demo. Seed a believable agenda.
+      const tz = config.locale.timezone;
+      const dstr = (off: number) => { const x = new Date(); x.setDate(x.getDate() + off); return x.toLocaleDateString("en-CA", { timeZone: tz }); };
+      const at = (off: number, h: number, m = 0) => { const x = new Date(); x.setDate(x.getDate() + off); x.setHours(h, m, 0, 0); return x.toISOString(); };
+      setEvents([
+        { title: "Gym — push day", start: at(0, 7), end: at(0, 8), allDay: false },
+        { title: "Film B-roll for the launch video", start: at(0, 14), end: at(0, 16), allDay: false },
+        { title: "Edit + thumbnail", start: at(1, 10), end: at(1, 12), allDay: false },
+        { title: "Publish the video", start: at(1, 17), end: at(1, 18), allDay: false },
+      ]);
+      setTodos([
+        { id: "ct1", text: "Lock the video script", done: true, date: dstr(0) },
+        { id: "ct2", text: "Render the final cut", done: false, date: dstr(0) },
+        { id: "ct3", text: "Schedule the launch post", done: false, date: dstr(1) },
+      ]);
+      setContent([]);
+      setLog(null); setLogLoaded(true);
+      return;
+    }
     fetch("/api/todos").then(r => r.json()).then(d => setTodos([...(d.todayGoals ?? []), ...(d.tomorrowGoals ?? [])])).catch(() => setTodos([]));
     fetch("/api/notion/videos").then(r => r.json()).then(d => setContent(d.videos ?? [])).catch(() => setContent([]));
     fetch("/api/calendar/events?days=3").then(r => r.json()).then(d => setEvents(d.events ?? [])).catch(() => setEvents([]));
     fetch("/api/notion/log").then(r => r.json()).then(d => { setLog(d.entry); setLogLoaded(true); }).catch(() => setLogLoaded(true));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Build today + tomorrow window in Toronto
@@ -137,7 +159,16 @@ export default function CalendarPage() {
         </div>
       )}
 
-      {/* Iframe — expandable */}
+      {/* Calendar embed — hidden in demo (real schedule) + when none configured */}
+      {isDemoMode ? (
+        <div className="animate-fade-up stagger-3 glass rounded-[16px] p-6 text-center">
+          <p className="text-[12px] text-text-3">📅 In the full OS your Google Calendar embeds right here. The demo hides it — your real schedule stays private.</p>
+        </div>
+      ) : CAL_SRCS.length === 0 ? (
+        <div className="animate-fade-up stagger-3 glass rounded-[16px] p-6 text-center">
+          <p className="text-[12px] text-text-3">Add your Google Calendar src IDs via <span className="font-mono text-text-2">NEXT_PUBLIC_GCAL_SRCS</span> to embed your calendar here.</p>
+        </div>
+      ) : (
       <div className="animate-fade-up stagger-3">
         <div className="flex items-center justify-between mb-2 px-1">
           <p className="text-[11px] uppercase tracking-[0.18em] text-text-3 flex items-center gap-2">
@@ -165,6 +196,7 @@ export default function CalendarPage() {
           />
         </div>
       </div>
+      )}
     </div>
   );
 }
