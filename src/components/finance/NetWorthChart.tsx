@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState, useRef } from "react";
+import { useDemoMode } from "@/components/ui/DemoModeContext";
 
 interface Snapshot { snapshot_date: string; amount_cad: number }
 
@@ -61,28 +62,42 @@ interface Props {
 }
 
 export function NetWorthChart({ currentNetWorth, breakdown }: Props) {
+  const { isDemoMode } = useDemoMode();
   const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
   const [loading, setLoading]     = useState(true);
   const [months, setMonths]       = useState(12);
 
   // Record today's snapshot once per session
   useEffect(() => {
+    if (isDemoMode) return; // never write to the DB in demo
     if (!isFinite(currentNetWorth) || currentNetWorth === 0) return;
     fetch("/api/net-worth-history", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ amount_cad: currentNetWorth, breakdown: breakdown ?? {} }),
     }).catch(() => {});
-  }, [currentNetWorth, breakdown]);
+  }, [currentNetWorth, breakdown, isDemoMode]);
 
   useEffect(() => {
+    if (isDemoMode) {
+      // Synthesize a believable upward series ending at the (demo) net worth.
+      const now = new Date();
+      setSnapshots(Array.from({ length: months }, (_, i) => {
+        const d = new Date(now); d.setMonth(d.getMonth() - (months - 1 - i));
+        const t = months > 1 ? i / (months - 1) : 1;
+        const amt = Math.round(currentNetWorth * (0.55 + 0.45 * t) + Math.sin(i * 1.3) * 900);
+        return { snapshot_date: d.toISOString().slice(0, 10), amount_cad: amt };
+      }));
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     fetch(`/api/net-worth-history?months=${months}`)
       .then(r => r.json())
       .then(d => { if (d.snapshots) setSnapshots(d.snapshots); })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [months]);
+  }, [months, isDemoMode, currentNetWorth]);
 
   if (loading) return (
     <div className="h-[100px] flex items-center justify-center">

@@ -344,19 +344,19 @@ export default function SettingsPage() {
 
         {open === "profile" && (
           <div className="mt-2">
-            <PublicProfileSettings />
+            {isDemoMode ? <DemoHidden label="Public profile" /> : <PublicProfileSettings />}
           </div>
         )}
       </div>
 
       {/* Active sessions */}
       <div className="animate-fade-up stagger-5">
-        <SessionsPanel />
+        {isDemoMode ? <DemoHidden label="Active sessions" /> : <SessionsPanel />}
       </div>
 
       {/* Briefing emails — manual test buttons */}
       <div className="animate-fade-up stagger-5">
-        <BriefingPreview />
+        {isDemoMode ? <DemoHidden label="Briefing preview" /> : <BriefingPreview />}
       </div>
 
       {/* Weekly reconcile reminder */}
@@ -366,7 +366,7 @@ export default function SettingsPage() {
 
       {/* SV-GPT skill editor — Alfred's identity */}
       <div className="animate-fade-up stagger-6">
-        <SvGptEditor />
+        {isDemoMode ? <DemoHidden label="Alfred's identity (SV-GPT)" /> : <SvGptEditor />}
       </div>
 
       {/* Alfred kill switch — top of Alfred section so it's findable in emergencies */}
@@ -376,7 +376,7 @@ export default function SettingsPage() {
 
       {/* Alfred's long-term memory */}
       <div className="animate-fade-up stagger-6">
-        <AlfredMemories />
+        {isDemoMode ? <DemoHidden label="Alfred's memories" /> : <AlfredMemories />}
       </div>
 
       {/* Wake word listener */}
@@ -386,7 +386,7 @@ export default function SettingsPage() {
 
       {/* Calendar feeds for Alfred */}
       <div className="animate-fade-up stagger-6">
-        <CalendarFeeds />
+        {isDemoMode ? <DemoHidden label="Calendar feeds" /> : <CalendarFeeds />}
       </div>
 
       {/* Security Panel — audit log, key rotation, break-glass */}
@@ -407,10 +407,21 @@ export default function SettingsPage() {
 
         {open === "audit" && (
           <div className="mt-2">
-            <SecurityPanel />
+            {isDemoMode ? <DemoHidden label="Audit log & defense" /> : <SecurityPanel />}
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+// Placeholder shown in place of a real-data panel while demo mode is on —
+// keeps your sessions/profile/memories/audit private on camera.
+function DemoHidden({ label }: { label: string }) {
+  return (
+    <div className="glass-1 rounded-[16px] border border-border-dim p-4 flex items-center gap-3">
+      <EyeOff size={15} className="text-text-3 flex-shrink-0" />
+      <p className="text-[12px] text-text-3">{label} is hidden while demo mode is on — your real data stays private.</p>
     </div>
   );
 }

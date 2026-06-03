@@ -68,6 +68,7 @@ function formatTime(iso: string): string {
 
 // ── Page ─────────────────────────────────────────────────────
 export default function TimelinePage() {
+  const { isDemoMode } = useDemoMode();
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState(currentYear);
   const [data, setData] = useState<EventsResponse | null>(null);
@@ -182,8 +183,12 @@ export default function TimelinePage() {
         })}
       </div>
 
-      {/* Map view */}
-      {view === "map" && <MapView year={year} />}
+      {/* Map view — hidden in demo (real photo GPS locations) */}
+      {view === "map" && (isDemoMode ? (
+        <div className="glass-1 rounded-[16px] border border-border-dim p-8 text-center">
+          <p className="text-[13px] text-text-3">🗺️ Your travels map out here from your photo locations — hidden in demo to keep your real places private.</p>
+        </div>
+      ) : <MapView year={year} />)}
 
       {/* Filter chips — feed only */}
       {view === "feed" && <div className="animate-fade-up stagger-2 flex flex-wrap gap-2">
