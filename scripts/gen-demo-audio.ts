@@ -20,7 +20,9 @@ import { DEMO_QA, DEMO_FALLBACK } from "../src/lib/demoAlfred";
   }
 
   const voice = process.env.DEMO_VOICE ?? "ash";        // Alfred's default voice
-  const model = process.env.OPENAI_TTS_MODEL ?? "tts-1";
+  // ash/ballad/coral/sage/verse need gpt-4o-mini-tts (tts-1 only has the
+  // classic 6 voices). gpt-4o-mini-tts is also cheaper + better quality.
+  const model = process.env.OPENAI_TTS_MODEL ?? "gpt-4o-mini-tts";
   const outDir = join(process.cwd(), "public", "demo-alfred");
   mkdirSync(outDir, { recursive: true });
 
