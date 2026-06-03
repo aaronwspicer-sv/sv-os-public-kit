@@ -11,7 +11,9 @@ export function DemoModeBanner() {
   if (config.isPublicDemo) {
     return (
       <a
-        href="/get"
+        // Points at the canonical /get on the main marketing site so the funnel
+        // consolidates there (set NEXT_PUBLIC_GET_URL on the demo deploy).
+        href={process.env.NEXT_PUBLIC_GET_URL || "/get"}
         className="fixed top-0 left-0 right-0 z-[90] flex items-center justify-center gap-2 px-4 py-2 text-[12px] font-700 tracking-[0.06em] text-white transition-all hover:brightness-110"
         style={{ background: "linear-gradient(90deg,#1d9bf0,#3eb0ff)", boxShadow: "0 2px 12px rgba(29,155,240,0.4)" }}
       >
