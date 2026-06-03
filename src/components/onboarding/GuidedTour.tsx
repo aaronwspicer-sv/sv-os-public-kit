@@ -71,7 +71,7 @@ export function GuidedTour({
 
   return (
     <div className="fixed inset-x-0 bottom-0 z-[120] flex justify-center p-3 sm:p-5 pointer-events-none">
-      <div className="w-full max-w-md glass-2 rounded-[20px] border border-border-dim overflow-hidden pointer-events-auto shadow-[0_8px_40px_rgba(0,0,0,0.55)] max-h-[72vh] overflow-y-auto">
+      <div className="w-full max-w-md surface-solid rounded-[20px] overflow-hidden pointer-events-auto max-h-[72vh] overflow-y-auto">
         {/* Progress */}
         <div className="flex gap-1 px-5 pt-5">
           {cards.map((_, i) => (
