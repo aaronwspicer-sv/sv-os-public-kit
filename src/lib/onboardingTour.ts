@@ -1,7 +1,7 @@
 // Content for the Alfred-guided walkthrough (src/components/onboarding/GuidedTour.tsx).
 // Runs after the security wizard for new owners, and powers the public demo.
-// Alfred is the hero (matches the marketing: "Meet Alfred. Your personal
-// Jarvis."). He doesn't just show the dashboard — he runs it. Keep each line
+// Alfred is the hero (matches the marketing: "Meet Alfred. Your right
+// hand."). He doesn't just show the dashboard — he runs it. Keep each line
 // short. Only pages that are in the real nav + render in demo are included.
 
 export type TourItem = { name: string; desc: string };

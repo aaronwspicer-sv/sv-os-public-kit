@@ -12,9 +12,9 @@ const VOICE_KEY  = "alfred_voice";        // OpenAI TTS voice id
 const TTS_KEY    = "alfred_tts_enabled";  // bool — auto-speak responses
 const CONVO_KEY  = "alfred_convo_mode";   // bool — auto-mic after response
 // Voices available in BOTH TTS (/api/alfred/tts) and Realtime API.
-// Tagged with rough gender impression so you can pick a Jarvis-style male.
+// Tagged with rough gender impression so you can pick an Alfred-style male.
 const VOICES: { id: string; label: string }[] = [
-  { id: "ash",     label: "Ash · male · deeper, steady (most Jarvis)" },
+  { id: "ash",     label: "Ash · male · deeper, steady (most Alfred)" },
   { id: "echo",    label: "Echo · male · grounded, calm" },
   { id: "ballad",  label: "Ballad · male · dramatic" },
   { id: "verse",   label: "Verse · male · dynamic" },
@@ -1289,7 +1289,7 @@ export function AlfredFab() {
                 </button>
               </div>
               <p className="text-[9px] text-text-3 mt-1.5 text-center">
-                ⌘J chat · ⌘⇧J Jarvis · ⌘⇧A mic · ⏎ send · ⇧⏎ newline
+                ⌘J chat · ⌘⇧J voice · ⌘⇧A mic · ⏎ send · ⇧⏎ newline
                 {speaking && <span className="ml-2 text-[#a78bfa]">🔊 speaking… <button onClick={stopSpeaking} className="underline">stop</button></span>}
               </p>
             </div>
