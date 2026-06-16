@@ -14,8 +14,13 @@ self-host kit: bring your own keys, run your own copy, own your data.
 
 ## What's inside
 
-- **Alfred** — an AI agent with 36 tools across the whole OS. Chat + voice +
+- **Alfred** — an AI agent with 42 tools across the whole OS. Chat + voice +
   vision, long-term vector memory, prompt-injection defenses, a kill switch.
+- **Autonomous Alfred** *(opt-in, off by default)* — Alfred runs daily passes
+  that quietly reshuffle your day, note patterns, and draft content from what
+  you build. Tiered + reversible: small internal actions run free, anything
+  outbound waits for your one-tap approval, and it can never move money. Every
+  action is logged with an undo at `/d/activity`.
 - **Daily log** — habits, hours, journal, streaks; morning brief + evening
   recap emails.
 - **Finances** — bank-CSV import → categorize → a Notion ledger, behind a
@@ -51,9 +56,8 @@ keypair). Re-runnable; `--defaults` for non-interactive.
 
 ### 2. Database
 
-In the Supabase SQL editor, run:
-- `supabase/schema.sql` (the full schema)
-- everything in `supabase/migrations/`
+In the Supabase SQL editor, paste and run **`supabase/setup.sql`** — one file
+that creates every table. (It's safe to re-run.)
 
 ### 3. Notion
 

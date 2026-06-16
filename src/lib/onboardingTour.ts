@@ -102,3 +102,18 @@ export const ROOM_STOPS: TourStop[] = [
     ],
   },
 ];
+
+// Shown in onboarding only (not the demo — it's empty without a real session).
+// Introduces the autonomous-action feed so new owners know where to watch me.
+export const ACTIVITY_STOP: TourStop = {
+  id: "activity",
+  route: "/d/activity",
+  title: "What I did",
+  alfred:
+    "When I start doing things on my own, every move lands here — so you can see exactly what I did and undo any of it in a tap. I'm hands-off until you switch on autonomy in Settings.",
+  items: [
+    { name: "The log", desc: "every action I take — reshuffling your day, noting a pattern, drafting a video idea." },
+    { name: "Undo", desc: "reverse anything I did, instantly." },
+    { name: "Approve", desc: "if I ever want to send or post something, it waits right here for your yes." },
+  ],
+};

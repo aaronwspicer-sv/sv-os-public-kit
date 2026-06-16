@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { ArrowRight, ArrowLeft, Check } from "lucide-react";
 import { config } from "@/config";
 import {
-  TOUR_INTRO, TOUR_OUTRO, ROOM_STOPS, NOTION_SETUP_STOP, type TourStop,
+  TOUR_INTRO, TOUR_OUTRO, ROOM_STOPS, NOTION_SETUP_STOP, ACTIVITY_STOP, type TourStop,
 } from "@/lib/onboardingTour";
 
 const TOUR_DONE_KEY = "os_tour_done_v1";
@@ -43,6 +43,9 @@ export function GuidedTour({
         } catch { /* skip setup card if health check unavailable */ }
       }
       stops.push(...ROOM_STOPS);
+      // Onboarding only — the activity feed is empty without a real session,
+      // so we don't show it in the demo.
+      if (mode === "onboarding") stops.push(ACTIVITY_STOP);
       if (!alive) return;
       setCards([{ type: "intro" }, ...stops.map(s => ({ type: "stop" as const, stop: s })), { type: "outro" }]);
     })();

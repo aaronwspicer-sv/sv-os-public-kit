@@ -238,11 +238,13 @@ const b64 = (bytes: number) => randomBytes(bytes).toString("base64");
   writeFileSync(envPath, lines.join("\n"));
   console.log(`\n${C.green("✓ Wrote .env.local")}`);
 
-  // ── Allowlist reminder ──
-  console.log(`\n${C.bold("Almost there — 2 manual steps:")}`);
-  console.log(`  ${C.yellow("1.")} Add your email to the allowlist in ${C.cyan("src/lib/ownerAllowlist.ts")}`);
-  console.log(`     (replace the default emails with: ${ownerEmail || "your@email.com"})`);
-  console.log(`  ${C.yellow("2.")} Run the SQL in ${C.cyan("supabase/schema.sql")} + ${C.cyan("supabase/migrations/")} in your Supabase SQL editor`);
+  // ── Final step ──
+  // The login allowlist is env-driven (OWNER_EMAIL, written above) — no code
+  // edit needed. The only manual step left is the database.
+  console.log(`\n${C.bold("Almost there — 1 manual step:")}`);
+  console.log(`  ${C.yellow("•")} Run ${C.cyan("supabase/setup.sql")} in your Supabase SQL editor — one file, one paste.`);
+  console.log(`    ${C.dim("It creates every table and is safe to re-run.")}`);
+  console.log(`\n  ${C.dim(`Login is locked to ${ownerEmail || "your OWNER_EMAIL"} — only you can get in. No allowlist edit needed.`)}`);
   console.log(`\n  Then: ${C.cyan("npm run dev")} → open ${appUrl}\n`);
 
   rl.close();

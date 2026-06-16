@@ -1,7 +1,15 @@
 #!/bin/sh
-# Autonomous Alfred — capture each commit for the self-documenting engine.
-# Enable once with:  git config core.hooksPath .githooks
-# Configure ALFRED_CAPTURE_URL + ALFRED_CAPTURE_SECRET in your shell env.
-# Silent + non-blocking: never fails a commit.
-node "$(git rev-parse --show-toplevel)/scripts/capture-commit.mjs" >/dev/null 2>&1 &
+# Post-commit hooks. Enable once with:  git config core.hooksPath .githooks
+# Both are silent + non-blocking: they never fail a commit.
+ROOT="$(git rev-parse --show-toplevel)"
+
+# 1) Autonomous Alfred — capture each commit for the self-documenting engine.
+#    Configure ALFRED_CAPTURE_URL + ALFRED_CAPTURE_SECRET in your shell env.
+node "$ROOT/scripts/capture-commit.mjs" >/dev/null 2>&1 &
+
+# 2) buyer-sync detector — flag when a commit may leave the self-host kit's
+#    buyer-facing surface (guide / README / onboarding) stale. Self-guards:
+#    silent inside the buyer kit (publish-kit.ts is stripped there).
+node "$ROOT/scripts/buyer-sync-check.mjs" 2>/dev/null || true
+
 exit 0

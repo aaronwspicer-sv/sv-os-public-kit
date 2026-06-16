@@ -11,16 +11,16 @@ import { PushSetup } from "@/components/security/PushSetup";
 import { SvGptEditor } from "@/components/settings/SvGptEditor";
 import {
   Shield, KeyRound, Smartphone, Bell, Sparkles, Lock, Check,
-  ChevronRight, Zap, Layers, Crown,
+  ChevronRight, Zap, Layers, Crown, Bot,
 } from "lucide-react";
 
 type Tier = "quick" | "full" | "power";
-type StepId = "pin" | "totp" | "passkey" | "push" | "finance" | "alfred";
+type StepId = "pin" | "totp" | "passkey" | "push" | "finance" | "alfred" | "autonomy";
 
 const STEPS_BY_TIER: Record<Tier, StepId[]> = {
-  quick: ["pin", "alfred"],
-  full:  ["pin", "totp", "passkey", "push", "alfred"],
-  power: ["pin", "totp", "passkey", "push", "finance", "alfred"],
+  quick: ["pin", "alfred", "autonomy"],
+  full:  ["pin", "totp", "passkey", "push", "alfred", "autonomy"],
+  power: ["pin", "totp", "passkey", "push", "finance", "alfred", "autonomy"],
 };
 
 const TIER_CARDS: { id: Tier; icon: any; title: string; time: string; blurb: string }[] = [
@@ -114,6 +114,7 @@ function StepBody({ step, onContinue, onSkip }: { step: StepId; onContinue: () =
   if (step === "passkey") return <StepFrame icon={KeyRound} title="Add a passkey" sub="Touch ID / Face ID / security key — the strongest, phishing-proof factor." onContinue={onContinue} onSkip={onSkip}><PasskeySetup /></StepFrame>;
   if (step === "push")   return <StepFrame icon={Bell} title="Push notifications" sub="Get the morning brief, security alerts, and reminders on your devices." onContinue={onContinue} onSkip={onSkip}><PushSetup /></StepFrame>;
   if (step === "finance") return <FinanceInfoStep onContinue={onContinue} onSkip={onSkip} />;
+  if (step === "autonomy") return <AutonomyStep onContinue={onContinue} onSkip={onSkip} />;
   return null;
 }
 
@@ -195,6 +196,40 @@ function FinanceInfoStep({ onContinue, onSkip }: { onContinue: () => void; onSki
         <p className="text-[12px] text-text-2 leading-relaxed">
           You&apos;re all set — the vault activates automatically once you&apos;ve added a PIN, 2FA, and a passkey above. Import bank CSVs and unlock it on the Finances page whenever you need it.
         </p>
+      </div>
+    </StepFrame>
+  );
+}
+
+function AutonomyStep({ onContinue, onSkip }: { onContinue: () => void; onSkip: () => void }) {
+  // Everyday examples first — buyers need to picture the impact, not the jargon.
+  const examples = [
+    "A meeting moves to the afternoon → Alfred reshuffles your morning and leaves you a note.",
+    "You ship something → it drafts a video idea about it, sitting in your content pipeline by morning.",
+    "It notices you've journaled 12 days straight → it remembers, so it can bring it up later.",
+  ];
+  return (
+    <StepFrame
+      icon={Bot}
+      title="Alfred can run on its own"
+      sub="Beyond answering you, Alfred can quietly handle small things in the background during its daily passes. It's OFF until you turn it on — here's what it looks like when you do."
+      onContinue={onContinue}
+      onSkip={onSkip}
+      skipLabel="Maybe later"
+    >
+      <div className="flex flex-col gap-2">
+        {examples.map((e, i) => (
+          <div key={i} className="glass-1 rounded-[12px] p-3 flex items-start gap-2.5">
+            <Sparkles size={14} className="text-accent mt-0.5 flex-shrink-0" />
+            <p className="text-[12px] text-text-2 leading-relaxed">{e}</p>
+          </div>
+        ))}
+        <div className="rounded-[12px] p-3 flex items-start gap-2.5 border border-[rgba(52,211,153,0.22)] bg-[rgba(52,211,153,0.04)]">
+          <Shield size={14} className="text-success mt-0.5 flex-shrink-0" />
+          <p className="text-[12px] text-text-2 leading-relaxed">
+            You stay in control: it only does small, reversible things on its own — every action shows up in <span className="text-text-1 font-600">Activity</span> with an <span className="text-text-1 font-600">Undo</span>. Anything that would send or post a message <span className="text-text-1 font-600">waits for your tap</span>, and it can <span className="text-text-1 font-600">never move money</span>. Turn it on anytime in Settings.
+          </p>
+        </div>
       </div>
     </StepFrame>
   );
