@@ -12,13 +12,13 @@ const PHRASE_KEY = "alfred_wake_phrase";
 function broadcast() { try { window.dispatchEvent(new Event("alfred:wake-config")); } catch {} }
 
 export function WakeWordSetting() {
-  const [enabled, setEnabled] = useState(false);
+  const [enabled, setEnabled] = useState(true);
   const [phrases, setPhrases] = useState<string[]>(DEFAULT_PHRASES);
   const [draft, setDraft]     = useState("");
   const [supported, setSupported] = useState<boolean | null>(null);
 
   useEffect(() => {
-    try { setEnabled(localStorage.getItem(ENABLE_KEY) === "1"); } catch {}
+    try { setEnabled(localStorage.getItem(ENABLE_KEY) !== "0"); } catch {}
     try {
       const raw = localStorage.getItem(PHRASE_KEY);
       if (raw) {
@@ -62,7 +62,7 @@ export function WakeWordSetting() {
         <div className="flex-1">
           <p className="text-[14px] font-600 text-text-1">Wake word (always listening)</p>
           <p className="text-[11px] text-text-3 mt-0.5">
-            When on, the browser listens for your wake phrase and auto-opens Alfred voice mode. Uses your browser's built-in speech recognition (Chrome/Edge/Safari only). Battery cost is real — leave off when not using.
+            On by default. Browser listens for your wake phrase and opens Alfred. Uses built-in speech recognition (Chrome/Edge/Safari). Toggle off to save battery when not using Alfred.
           </p>
         </div>
         <label className="flex items-center gap-2 cursor-pointer">

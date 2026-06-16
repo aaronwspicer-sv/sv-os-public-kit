@@ -9,7 +9,7 @@
 //   3. Keep ENCRYPTION_KEY (old) set — needed to decrypt legacy/v1 rows
 //   4. Run the optional re-encrypt script (rotateAll) to migrate rows to v2
 //   5. Once all rows are v2, remove ENCRYPTION_KEY
-import crypto from "crypto";
+import crypto from "node:crypto";
 
 const ALGORITHM = "aes-256-gcm";
 

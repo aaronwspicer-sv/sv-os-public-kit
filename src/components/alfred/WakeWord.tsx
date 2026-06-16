@@ -19,7 +19,8 @@ export const DEFAULT_PHRASES = ["hey alfred", "okay alfred", "yo alfred"];
 
 function loadEnabled(): boolean {
   if (typeof window === "undefined") return false;
-  try { return localStorage.getItem(ENABLE_KEY) === "1"; } catch { return false; }
+  // On by default — only off if user explicitly disabled it
+  try { return localStorage.getItem(ENABLE_KEY) !== "0"; } catch { return true; }
 }
 function loadPhrases(): string[] {
   if (typeof window === "undefined") return DEFAULT_PHRASES;
@@ -98,7 +99,7 @@ export function WakeWord() {
           // Pass any words after the wake phrase as a follow-on (optional)
           const idx = text.indexOf(hit.toLowerCase());
           const follow = text.slice(idx + hit.length).trim();
-          window.dispatchEvent(new CustomEvent("alfred:wake", { detail: { follow } }));
+          window.dispatchEvent(new CustomEvent("alfred:wake", { detail: { follow, voice: true } }));
           // Stop the wake recogniser so Realtime can grab the mic cleanly.
           try { rec.stop(); } catch {}
           return;

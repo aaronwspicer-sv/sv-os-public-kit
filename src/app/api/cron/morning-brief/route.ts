@@ -8,7 +8,8 @@ import { pickHero } from "@/lib/brief/hero";
 import { renderMorningBrief } from "@/lib/brief/render";
 import { sendPushToUser } from "@/lib/push";
 import { requireOwner } from "@/lib/auth";
-import { detectPatterns, generateMorningInsight, detectDeadTime } from "@/lib/alfred/autonomous";
+import { detectPatterns, generateMorningInsight, detectDeadTime, generateFullBrief } from "@/lib/alfred/autonomous";
+import { runAgentPass } from "@/lib/alfred/agent/loop";
 import { createClient } from "@supabase/supabase-js";
 import { torontoDayOfWeek } from "@/lib/torontoDay";
 import { startCronRun, getStaleCronJobs } from "@/lib/cronTelemetry";
@@ -158,8 +159,11 @@ async function run(req: NextRequest) {
           return (rows ?? []) as { content: string; kind: string; created_at: string }[];
         } catch { return []; }
       })();
-      // Let Alfred override the static hero with a fresh per-day take
-      const alfredInsight = await generateMorningInsight(uid);
+      // Let Alfred override the static hero + write a full narrative section
+      const [alfredInsight, alfredNarrative] = await Promise.all([
+        generateMorningInsight(uid),
+        generateFullBrief(uid, data, patterns, { weather, headlines, markets }).catch(() => null),
+      ]);
       const hero = alfredInsight
         ? { emoji: "✦", text: alfredInsight, tone: "celebrate" as const }
         : pickHero(data);
@@ -171,7 +175,7 @@ async function run(req: NextRequest) {
       const heroWithPatterns = urgentPatterns.length > 0 || deadSlots.length > 0
         ? { ...hero, text: `${hero.text}\n\n${urgentPatterns.map(p => `${p.emoji} ${p.text}`).join("  ·  ")}${deadTimeLine}`.trim() }
         : hero;
-      const { subject, html } = renderMorningBrief({ name: OWNER_NAME, hero: heroWithPatterns, data, sources, alfredMemories: onThisDay });
+      const { subject, html } = renderMorningBrief({ name: OWNER_NAME, hero: heroWithPatterns, data, sources, alfredMemories: onThisDay, alfredNarrative: alfredNarrative ?? undefined });
 
       await resend.emails.send({
         from: config.brand.emailFrom,
@@ -237,6 +241,11 @@ async function run(req: NextRequest) {
           tag:   "morning-brief",
         }, sb).catch(() => {});
       }
+
+      // Ride-along: the morning autonomous pass. Free Vercel allows only 2 cron
+      // jobs, so the agent loop runs inside the brief instead of its own cron.
+      // No-op unless the owner has turned on autonomy_enabled.
+      await runAgentPass(uid, "morning").catch(() => {});
     } catch (err: any) {
       errors.push(`${uid}: ${err?.message ?? "unknown"}`);
       captureError(err, { area: "cron", action: "morning_brief_for_user", route: "/api/cron/morning-brief", userId: uid });

@@ -1,20 +1,21 @@
 "use client";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Home, BookOpen, Target, DollarSign, Video, Calendar, Settings, LogOut, Trophy, Clock } from "lucide-react";
+import { Home, BookOpen, Target, DollarSign, Video, Calendar, Settings, LogOut, Trophy, Clock, Timer, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { SvMark } from "@/components/SvMark";
 import { config } from "@/config";
 
 const nav = [
-  { href: "/d",          icon: Home,        label: "Home" },
+  { href: "/d",          icon: Sparkles,    label: "Alfred" },
   { href: "/d/entry",    icon: BookOpen,    label: "Daily Entry" },
   { href: "/d/goals",    icon: Target,      label: "Goals" },
   { href: "/d/finances", icon: DollarSign,  label: "Finances" },
   { href: "/d/content",  icon: Video,       label: "Content" },
   { href: "/d/calendar", icon: Calendar,    label: "Calendar" },
   { href: "/d/timeline", icon: Clock,       label: "Timeline" },
+  { href: "/d/time",     icon: Timer,       label: "Time Blocks" },
   // Jays — gated; personal/Toronto feature
   ...(config.features.jays ? [{ href: "/d/jays", icon: Trophy, label: "Jays" }] : []),
   { href: "/d/settings", icon: Settings,    label: "Security" },

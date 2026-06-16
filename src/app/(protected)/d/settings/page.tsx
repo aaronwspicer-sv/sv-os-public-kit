@@ -17,6 +17,7 @@ import { PublicProfileSettings } from "@/components/settings/PublicProfileSettin
 import { SvGptEditor } from "@/components/settings/SvGptEditor";
 import { AlfredMemories } from "@/components/settings/AlfredMemories";
 import { AlfredKillSwitch } from "@/components/settings/AlfredKillSwitch";
+import { AlfredAutonomyToggle } from "@/components/settings/AlfredAutonomyToggle";
 import { WakeWordSetting } from "@/components/settings/WakeWordSetting";
 import { CalendarFeeds } from "@/components/settings/CalendarFeeds";
 import { Shield, Key, Lock, Bell, History, ChevronDown, ChevronUp, User, Fingerprint, Activity, ChevronRight, EyeOff, Compass } from "lucide-react";
@@ -372,6 +373,11 @@ export default function SettingsPage() {
       {/* Alfred kill switch — top of Alfred section so it's findable in emergencies */}
       <div className="animate-fade-up stagger-6">
         <AlfredKillSwitch />
+      </div>
+
+      {/* Autonomous Alfred opt-in */}
+      <div className="animate-fade-up stagger-6">
+        {isDemoMode ? <DemoHidden label="Autonomous Alfred" /> : <AlfredAutonomyToggle />}
       </div>
 
       {/* Alfred's long-term memory */}

@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/Badge";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { SkeletonRows } from "@/components/ui/Skeleton";
 import { currencySymbol } from "@/lib/money";
+import { PILLARS, PILLAR_COLOR } from "@/lib/pillars";
 import {
   Calendar, Flame, Clock, Eye, Dumbbell, DollarSign,
   Video, Target, Award, ChevronLeft, ChevronRight, GitCompare,
@@ -39,9 +40,6 @@ interface YearStats {
   monthly: MonthlyEntry[];
 }
 
-const PILLAR_COLOR: Record<string, string> = {
-  Journey: "#a78bfa", Process: "#1D9BF0", Proof: "#34d399", Lessons: "#fbbf24",
-};
 const MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
 function fmtMoney(n: number) {
@@ -250,7 +248,7 @@ export default function YearPage() {
             </CardHeader>
             <StackedMonthlyBars monthly={data.monthly} />
             <div className="flex flex-wrap gap-3 mt-3">
-              {(["Journey","Process","Proof","Lessons"] as const).map(p => (
+              {PILLARS.map(p => (
                 <div key={p} className="flex items-center gap-1.5 text-[10px]">
                   <span className="w-1.5 h-1.5 rounded-full" style={{ background: PILLAR_COLOR[p] }} />
                   <span className="text-text-3">{p}</span>
@@ -489,7 +487,7 @@ function MonthlyBars({ data, barColor }: { data: { month: number; value: number;
 // ── Monthly stacked bars by pillar (for content) ─────────────
 function StackedMonthlyBars({ monthly }: { monthly: MonthlyEntry[] }) {
   const max = Math.max(1, ...monthly.map(m => m.published));
-  const pillars = ["Journey", "Process", "Proof", "Lessons"] as const;
+  const pillars = PILLARS;
   return (
     <div className="flex items-end gap-1 h-[100px]">
       {monthly.map(m => {

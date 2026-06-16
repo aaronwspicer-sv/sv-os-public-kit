@@ -23,7 +23,7 @@ export async function GET() {
         title:             props["Title"]?.title?.[0]?.plain_text ?? "Untitled",
         status:            props["Status"]?.select?.name ?? "Idea",
         type:              props["Type"]?.select?.name ?? "Long Form",
-        pillar:            props["Content Pillar"]?.select?.name ?? "Journey",
+        pillar:            props["Content Pillar"]?.select?.name ?? "Building AI Systems",
         platform:          (props["Platform"]?.multi_select ?? []).map((p: any) => p.name),
         effortLevel:       props["Effort Level"]?.select?.name ?? "Medium",
         publishDate:       props["Publish Date"]?.date?.start ?? null,
@@ -53,7 +53,7 @@ export async function POST(req: Request) {
   if (!gate.ok) return gate.error;
   const { user, supabase } = gate;
 
-  const { title, type = "Long Form", pillar = "Journey", effortLevel = "Medium" } = await req.json();
+  const { title, type = "Long Form", pillar = "Building AI Systems", effortLevel = "Medium" } = await req.json();
   if (!title?.trim()) return NextResponse.json({ error: "Title required" }, { status: 400 });
 
   try {

@@ -8,17 +8,18 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { useToast } from "@/components/ui/ToastProvider";
 import { useDemoMode } from "@/components/ui/DemoModeContext";
 import { DEMO_VIDEOS, DEMO_IDEAS } from "@/lib/demoMode";
+import { type Pillar, PILLARS, PILLAR_COLOR, normalizePillar } from "@/lib/pillars";
 import {
   Plus, Music2, Eye, Calendar as CalendarIcon, TrendingUp, Sparkles,
   Image as ImageIcon, ExternalLink, AlertTriangle, ChevronRight,
   Film, Smartphone, Activity, BarChart3, Layers, Inbox, Trash2, ArrowUpRight,
+  Zap, RefreshCw, Rocket, Check, Circle,
 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { config } from "@/config";
 
 // ── Types ──────────────────────────────────────────────────────
 type Status  = "Idea" | "Packaged" | "Scripted" | "Filmed" | "Editing" | "Live";
-type Pillar  = "Journey" | "Process" | "Proof" | "Lessons";
 type VidType = "Long Form" | "Short Form Clip" | "Standalone Short";
 type Effort  = "High" | "Medium" | "Low";
 
@@ -46,13 +47,8 @@ interface Video {
 
 const STATUSES: Status[]  = ["Idea", "Packaged", "Scripted", "Filmed", "Editing", "Live"];
 const ACTIVE_STATUSES = STATUSES.filter(s => s !== "Live");
-const PILLARS: Pillar[]   = ["Journey", "Process", "Proof", "Lessons"];
 const TYPES: VidType[]    = ["Long Form", "Short Form Clip", "Standalone Short"];
 const EFFORTS: Effort[]   = ["Low", "Medium", "High"];
-
-const PILLAR_COLOR: Record<string, string> = {
-  Journey: "#a78bfa", Process: "#1D9BF0", Proof: "#34d399", Lessons: "#fbbf24",
-};
 const STATUS_COLOR: Record<string, string> = {
   Idea: "#94a3b8", Packaged: "#a78bfa", Scripted: "#1D9BF0",
   Filmed: "#fbbf24", Editing: "#f97316", Live: "#34d399",
@@ -88,14 +84,14 @@ function PlatformIcon({ p }: { p: string }) {
 export default function ContentPage() {
   const toast = useToast();
   const [videos, setVideos] = useState<Video[] | null>(null);
-  const [tab, setTab]       = useState<"overview"|"pipeline"|"inbox"|"calendar"|"performance">("overview");
+  const [tab, setTab]       = useState<"overview"|"pipeline"|"inbox"|"calendar"|"performance"|"command">("overview");
   const [filterPillar, setFilterPillar] = useState<Pillar | "All">("All");
   const [filterType, setFilterType]     = useState<"All" | "Long Form" | "Short">("All");
 
   // Quick-capture state
   const [captureOpen, setCaptureOpen] = useState(false);
   const [captureTitle, setCaptureTitle] = useState("");
-  const [capturePillar, setCapturePillar] = useState<Pillar>("Journey");
+  const [capturePillar, setCapturePillar] = useState<Pillar>("Building AI Systems");
   const [captureType, setCaptureType] = useState<VidType>("Long Form");
   const [captureBusy, setCaptureBusy] = useState(false);
 
@@ -105,7 +101,7 @@ export default function ContentPage() {
     try {
       const r = await fetch("/api/notion/videos");
       const d = await r.json();
-      if (d.videos) setVideos(d.videos);
+      if (d.videos) setVideos((d.videos as Video[]).map(v => ({ ...v, pillar: normalizePillar(v.pillar) })));
       else if (d.error) toast.error("Couldn't load videos", d.error);
     } catch (e: any) {
       toast.error("Network error", e?.message);
@@ -172,6 +168,7 @@ export default function ContentPage() {
     { key: "inbox",       label: "Inbox",       icon: Inbox },
     { key: "calendar",    label: "Calendar",    icon: CalendarIcon },
     { key: "performance", label: "Performance", icon: BarChart3 },
+    { key: "command",     label: "Command",     icon: Zap },
   ] as const;
 
   return (
@@ -273,6 +270,9 @@ export default function ContentPage() {
 
       {/* ── INBOX ── */}
       {tab === "inbox" && <InboxTab onPromoted={() => load()} />}
+
+      {/* ── COMMAND ── */}
+      {tab === "command" && <CommandTab videos={videos} onSynced={load} />}
     </div>
   );
 }
@@ -937,6 +937,343 @@ function PerfViewsEdit({ value, onSave }: { value: number; onSave: (n: number) =
   );
 }
 
+// ── COMMAND TAB ───────────────────────────────────────────────
+interface ChannelStats {
+  subs: number;
+  totalViews: number;
+  videos: number;
+  title: string;
+}
+
+function CommandTab({ videos, onSynced }: { videos: Video[] | null; onSynced: () => void }) {
+  const toast = useToast();
+  const [channel, setChannel] = useState<ChannelStats | null>(null);
+  const [channelErr, setChannelErr] = useState(false);
+  const [copied, setCopied] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/youtube/channel")
+      .then(r => r.json())
+      .then(d => { if (d.error) setChannelErr(true); else setChannel(d); })
+      .catch(() => setChannelErr(true));
+  }, []);
+
+  async function syncViews() {
+    setSyncing(true);
+    try {
+      const r = await fetch("/api/cron/sync-views", { method: "POST" });
+      const d = await r.json();
+      if (!r.ok || d.error) throw new Error(d.error ?? "Sync failed");
+      if (d.updated > 0) {
+        toast.success("Views synced", `${d.updated} of ${d.checked} updated from YouTube`);
+        onSynced();
+      } else {
+        toast.success("Views up to date", `${d.checked} Live ${d.checked === 1 ? "video" : "videos"} checked`);
+      }
+    } catch (e: any) {
+      toast.error("Sync failed", e?.message);
+    } finally {
+      setSyncing(false);
+    }
+  }
+
+  function copyPrompt(id: string, text: string) {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(id);
+      setTimeout(() => setCopied(null), 2000);
+    });
+  }
+
+  if (!videos) return <Card><SkeletonRows count={6} /></Card>;
+
+  const live   = videos.filter(v => v.status === "Live");
+  const active = videos.filter(v => v.status !== "Live");
+
+  const stuck = active
+    .map(v => ({ v, age: daysSince(v.lastEdited) }))
+    .filter(x => x.age >= STAGE_AGE_BAD)
+    .sort((a, b) => b.age - a.age);
+
+  const needsRepurpose = live.filter(
+    v => v.type === "Long Form" && v.shortFormClipIds.length === 0,
+  );
+
+  const staleViews = live
+    .filter(v => {
+      const publishedAgo = v.publishDate ? daysSince(v.publishDate) : 0;
+      return publishedAgo >= 7 && (v.views === 0 || daysSince(v.lastEdited) >= 7);
+    })
+    .sort((a, b) => daysSince(b.publishDate) - daysSince(a.publishDate))
+    .slice(0, 5);
+
+  const velocity = ACTIVE_STATUSES.map(s => {
+    const vids = active.filter(v => v.status === s);
+    const avgDays = vids.length > 0
+      ? Math.round(vids.reduce((sum, v) => sum + daysSince(v.lastEdited), 0) / vids.length)
+      : null;
+    return { status: s, count: vids.length, avgDays };
+  });
+
+  // Publish-readiness gate: videos in the final (Editing) stage, with a
+  // per-asset checklist. "Ready" = all four assets locked. No auto-upload —
+  // Aaron publishes from YouTube Studio; this just tells him what's ready.
+  const editing = active
+    .filter(v => v.status === "Editing")
+    .map(v => {
+      const checks = [
+        { label: "Title",     ok: !!v.title },
+        { label: "Thumbnail", ok: !!v.thumbnail },
+        { label: "Video",     ok: !!v.finalVideo },
+        { label: "Date",      ok: !!v.publishDate },
+      ];
+      return { v, checks, ready: checks.every(c => c.ok) };
+    });
+  const readyCount = editing.filter(e => e.ready).length;
+
+  const totalAttention = stuck.length + needsRepurpose.length + staleViews.length;
+
+  return (
+    <div className="flex flex-col gap-4 animate-fade-up stagger-3">
+
+      {/* Channel Health */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Channel Health</CardTitle>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={syncViews}
+              disabled={syncing}
+              className="text-[11px] text-text-3 hover:text-accent transition-colors inline-flex items-center gap-1 disabled:opacity-50"
+              title="Pull live view counts from YouTube into Notion"
+            >
+              <RefreshCw size={10} className={syncing ? "animate-spin" : ""} />
+              {syncing ? "Syncing…" : "Sync views"}
+            </button>
+            <a
+              href="https://studio.youtube.com"
+              target="_blank" rel="noopener noreferrer"
+              className="text-[11px] text-text-3 hover:text-accent transition-colors inline-flex items-center gap-1"
+            >
+              Studio <ExternalLink size={10} />
+            </a>
+          </div>
+        </CardHeader>
+        {!channel && !channelErr ? (
+          <div className="grid grid-cols-3 gap-3">
+            {[0,1,2].map(i => <Skeleton key={i} width="100%" height={56} rounded="md" />)}
+          </div>
+        ) : channelErr ? (
+          <p className="text-[12px] text-text-3 py-1">
+            YOUTUBE_API_KEY not configured or quota exceeded.
+          </p>
+        ) : (
+          <div className="grid grid-cols-3 gap-3">
+            {([
+              { label: "Subscribers", value: fmtViews(channel!.subs) },
+              { label: "Total Views",  value: fmtViews(channel!.totalViews) },
+              { label: "Videos",       value: String(channel!.videos) },
+            ] as const).map(({ label, value }) => (
+              <div key={label} className="flex flex-col gap-0.5 px-3 py-2.5 rounded-[10px] bg-[rgba(255,255,255,0.03)] border border-border-dim">
+                <p className="text-[10px] uppercase tracking-widest text-text-3">{label}</p>
+                <p className="text-[22px] font-700 tabular-nums font-mono text-text-1">{value}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+
+      {/* Publish Readiness */}
+      {editing.length > 0 && (
+        <Card variant={readyCount > 0 ? "success" : undefined}>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Rocket size={14} className={readyCount > 0 ? "text-[#34d399]" : "text-text-3"} />
+              <CardTitle>Publish Readiness</CardTitle>
+            </div>
+            <span className="text-[10px] text-text-3 tabular-nums">{readyCount}/{editing.length} ready</span>
+          </CardHeader>
+          <div className="flex flex-col gap-1.5">
+            {editing.map(({ v, checks, ready }) => (
+              <div key={v.id + "_ready"} className="flex items-center gap-3 px-3 py-2 rounded-[10px] bg-[rgba(255,255,255,0.03)]">
+                <div className="flex-1 min-w-0">
+                  <p className="text-[12px] font-600 text-text-1 truncate">{v.title}</p>
+                  <div className="flex items-center gap-2.5 mt-1">
+                    {checks.map(c => (
+                      <span key={c.label} className={`text-[9px] inline-flex items-center gap-0.5 ${c.ok ? "text-[#34d399]" : "text-text-3"}`}>
+                        {c.ok ? <Check size={9} /> : <Circle size={9} />} {c.label}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5 flex-shrink-0">
+                  {ready
+                    ? <Badge variant="success">Ready</Badge>
+                    : <span className="text-[10px] text-text-3 tabular-nums">{checks.filter(c => c.ok).length}/4</span>}
+                  {v.notionUrl && (
+                    <a href={v.notionUrl} target="_blank" rel="noopener noreferrer" className="text-text-3 hover:text-accent transition-colors">
+                      <ExternalLink size={11} />
+                    </a>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
+      {/* Attention Queue */}
+      <Card variant={totalAttention > 0 ? "warning" : undefined}>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <AlertTriangle size={14} className={totalAttention > 0 ? "text-warning" : "text-text-3"} />
+            <CardTitle>Attention Queue</CardTitle>
+          </div>
+          {totalAttention > 0 && <Badge variant="warning">{totalAttention}</Badge>}
+        </CardHeader>
+
+        {totalAttention === 0 ? (
+          <p className="text-[12px] text-text-3 py-1">All clear — nothing needs attention.</p>
+        ) : (
+          <div className="flex flex-col gap-4">
+
+            {stuck.length > 0 && (
+              <div className="flex flex-col gap-1">
+                <p className="text-[10px] uppercase tracking-widest text-danger px-1 mb-1">
+                  Stuck · {stuck.length}
+                </p>
+                {stuck.map(({ v, age }) => (
+                  <AttentionItem
+                    key={v.id + "_stuck"}
+                    title={v.title}
+                    sub={`${v.status} · ${age}d in stage`}
+                    dotColor="#f87171"
+                    notionUrl={v.notionUrl}
+                    promptText={`/sv-pipeline\nContinue "${v.title}" — it's been ${age} days in ${v.status}. What's blocking this?`}
+                    copyId={v.id + "_stuck"}
+                    copied={copied}
+                    onCopy={copyPrompt}
+                  />
+                ))}
+              </div>
+            )}
+
+            {needsRepurpose.length > 0 && (
+              <div className="flex flex-col gap-1">
+                <p className="text-[10px] uppercase tracking-widest text-warning px-1 mb-1">
+                  Needs Repurpose · {needsRepurpose.length}
+                </p>
+                {needsRepurpose.map(v => (
+                  <AttentionItem
+                    key={v.id + "_rep"}
+                    title={v.title}
+                    sub={`Live · ${v.views > 0 ? fmtViews(v.views) + " views" : "no views yet"} · no clips`}
+                    dotColor="#fbbf24"
+                    notionUrl={v.notionUrl}
+                    promptText={`/sv-pipeline\nRepurpose "${v.title}" — extract 2-3 clips for Shorts/Reels. Paste the transcript or YouTube URL.`}
+                    copyId={v.id + "_rep"}
+                    copied={copied}
+                    onCopy={copyPrompt}
+                  />
+                ))}
+              </div>
+            )}
+
+            {staleViews.length > 0 && (
+              <div className="flex flex-col gap-1">
+                <p className="text-[10px] uppercase tracking-widest text-accent px-1 mb-1">
+                  Stale Views · {staleViews.length}
+                </p>
+                {staleViews.map(v => (
+                  <AttentionItem
+                    key={v.id + "_views"}
+                    title={v.title}
+                    sub={`Published ${daysSince(v.publishDate)}d ago · ${fmtViews(v.views)} views recorded`}
+                    dotColor="#1D9BF0"
+                    notionUrl={v.notionUrl}
+                    promptText={null}
+                    copyId={v.id + "_views"}
+                    copied={copied}
+                    onCopy={copyPrompt}
+                  />
+                ))}
+              </div>
+            )}
+
+          </div>
+        )}
+      </Card>
+
+      {/* Pipeline Velocity */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Pipeline Velocity</CardTitle>
+          <span className="text-[10px] text-text-3">avg days in stage</span>
+        </CardHeader>
+        <div className="grid grid-cols-5 gap-2">
+          {velocity.map(({ status, count, avgDays }) => (
+            <div key={status} className="flex flex-col items-center gap-1 px-2 py-3 rounded-[10px] bg-[rgba(255,255,255,0.03)] border border-border-dim">
+              <span className="w-1.5 h-1.5 rounded-full" style={{ background: STATUS_COLOR[status] }} />
+              <p className="text-[20px] font-700 tabular-nums text-text-1">{count}</p>
+              <p className="text-[9px] uppercase tracking-widest text-text-3">{status}</p>
+              {count > 0 && avgDays !== null && (
+                <p className="text-[9px] text-text-3 tabular-nums mt-0.5">{avgDays}d</p>
+              )}
+            </div>
+          ))}
+        </div>
+      </Card>
+
+    </div>
+  );
+}
+
+function AttentionItem({
+  title, sub, dotColor, notionUrl, promptText, copyId, copied, onCopy,
+}: {
+  title: string;
+  sub: string;
+  dotColor: string;
+  notionUrl: string | null;
+  promptText: string | null;
+  copyId: string;
+  copied: string | null;
+  onCopy: (id: string, text: string) => void;
+}) {
+  const isCopied = copied === copyId;
+  return (
+    <div className="flex items-center gap-3 px-3 py-2 rounded-[10px] bg-[rgba(255,255,255,0.03)]">
+      <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: dotColor }} />
+      <div className="flex-1 min-w-0">
+        <p className="text-[12px] font-600 text-text-1 truncate">{title}</p>
+        <p className="text-[10px] text-text-3">{sub}</p>
+      </div>
+      <div className="flex items-center gap-1.5 flex-shrink-0">
+        {promptText && (
+          <button
+            onClick={() => onCopy(copyId, promptText)}
+            className={`text-[10px] px-2 py-0.5 rounded-[6px] font-500 transition-all ${
+              isCopied
+                ? "bg-[rgba(52,211,153,0.15)] text-[#34d399]"
+                : "bg-[rgba(255,255,255,0.06)] text-text-3 hover:text-text-1 hover:bg-[rgba(255,255,255,0.1)]"
+            }`}
+          >
+            {isCopied ? "Copied!" : "Copy prompt"}
+          </button>
+        )}
+        {notionUrl && (
+          <a
+            href={notionUrl} target="_blank" rel="noopener noreferrer"
+            className="text-text-3 hover:text-accent transition-colors"
+          >
+            <ExternalLink size={11} />
+          </a>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── INBOX TAB ──────────────────────────────────────────────
 interface Idea {
   id: string;
@@ -956,7 +1293,7 @@ function InboxTab({ onPromoted }: { onPromoted: () => void }) {
   const [captureText, setCaptureText] = useState("");
   const [adding, setAdding] = useState(false);
   const [promoteId, setPromoteId] = useState<string | null>(null);
-  const [promotePillar, setPromotePillar] = useState<Pillar>("Journey");
+  const [promotePillar, setPromotePillar] = useState<Pillar>("Building AI Systems");
   const [promoteType, setPromoteType] = useState<VidType>("Long Form");
   const [busyId, setBusyId] = useState<string | null>(null);
 

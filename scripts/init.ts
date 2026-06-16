@@ -120,7 +120,7 @@ const b64 = (bytes: number) => randomBytes(bytes).toString("base64");
   const resendKey = await ask("Resend API key (re_…)");
 
   // ── Optional tiers ──
-  let sentryDsn = "", sentryOrg = "", sentryProject = "", sentryToken = "", mapbox = "", youtube = "";
+  let sentryDsn = "", sentryOrg = "", sentryProject = "", sentryToken = "", mapbox = "", youtube = "", youtubeChannelId = "";
   if (isFull) {
     section("Observability & extras (full)  " + C.dim("(leave blank to skip)"));
     sentryDsn = await ask("Sentry DSN");
@@ -129,6 +129,7 @@ const b64 = (bytes: number) => randomBytes(bytes).toString("base64");
     sentryToken = await ask("Sentry auth token (source maps)");
     mapbox = await ask("Mapbox token (timeline maps)");
     youtube = await ask("YouTube Data API key (content research)");
+    youtubeChannelId = await ask("YouTube Channel ID (UC… — from youtube.com/channel/<ID>)");
   }
   let upstashUrl = "", upstashToken = "", tavily = "", ownerUserIds = "";
   if (isPower) {
@@ -145,7 +146,8 @@ const b64 = (bytes: number) => randomBytes(bytes).toString("base64");
   const financeVaultSecret = hex(32);
   const twoFaSecret = b64(32);
   const cronSecret = b64(32);
-  console.log(C.green("  ✓ ENCRYPTION_KEY, FINANCE_VAULT_SECRET, TWO_FA_COOKIE_SECRET, CRON_SECRET"));
+  const captureSecret = b64(32);
+  console.log(C.green("  ✓ ENCRYPTION_KEY, FINANCE_VAULT_SECRET, TWO_FA_COOKIE_SECRET, CRON_SECRET, ALFRED_CAPTURE_SECRET"));
 
   let vapidPublic = "", vapidPrivate = "";
   try {
@@ -211,6 +213,7 @@ const b64 = (bytes: number) => randomBytes(bytes).toString("base64");
     `FINANCE_VAULT_SECRET=${financeVaultSecret}`,
     `TWO_FA_COOKIE_SECRET=${twoFaSecret}`,
     `CRON_SECRET=${cronSecret}`,
+    `ALFRED_CAPTURE_SECRET=${captureSecret}`,
     `NEXT_PUBLIC_VAPID_PUBLIC_KEY=${vapidPublic}`,
     `VAPID_PUBLIC_KEY=${vapidPublic}`,
     `VAPID_PRIVATE_KEY=${vapidPrivate}`,
@@ -224,6 +227,7 @@ const b64 = (bytes: number) => randomBytes(bytes).toString("base64");
     `SENTRY_AUTH_TOKEN=${sentryToken}`,
     `NEXT_PUBLIC_MAPBOX_TOKEN=${mapbox}`,
     `YOUTUBE_API_KEY=${youtube}`,
+    `YOUTUBE_CHANNEL_ID=${youtubeChannelId}`,
     `UPSTASH_REDIS_REST_URL=${upstashUrl}`,
     `UPSTASH_REDIS_REST_TOKEN=${upstashToken}`,
     `TAVILY_API_KEY=${tavily}`,

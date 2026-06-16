@@ -226,7 +226,7 @@ export async function GET(req: NextRequest) {
     const publishDate = props["Publish Date"]?.date?.start ?? "";
     if (!publishDate || !publishDate.startsWith(String(year))) continue;
     const title = props["Title"]?.title?.[0]?.plain_text ?? "Untitled";
-    const pillar = props["Content Pillar"]?.select?.name ?? "Journey";
+    const pillar = props["Content Pillar"]?.select?.name ?? "Building AI Systems";
     const type   = props["Type"]?.select?.name ?? "Long Form";
     const views  = props["Views"]?.number ?? 0;
     const thumb  = props["Thumbnail"]?.url ?? null;

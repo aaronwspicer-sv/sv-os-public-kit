@@ -1,0 +1,7 @@
+#!/bin/sh
+# Autonomous Alfred — capture each commit for the self-documenting engine.
+# Enable once with:  git config core.hooksPath .githooks
+# Configure ALFRED_CAPTURE_URL + ALFRED_CAPTURE_SECRET in your shell env.
+# Silent + non-blocking: never fails a commit.
+node "$(git rev-parse --show-toplevel)/scripts/capture-commit.mjs" >/dev/null 2>&1 &
+exit 0

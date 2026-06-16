@@ -7,11 +7,14 @@ import { renderEveningRecap } from "@/lib/brief/render";
 import { sendPushToUser } from "@/lib/push";
 import { requireOwner } from "@/lib/auth";
 import { generateAlfredReview } from "@/lib/alfred/autonomous";
+import { runAgentPass } from "@/lib/alfred/agent/loop";
+import { runWorldMonitor } from "@/lib/alfred/agent/worldMonitor";
 import { createClient } from "@supabase/supabase-js";
 import { torontoDayOfWeek } from "@/lib/torontoDay";
 import { startCronRun } from "@/lib/cronTelemetry";
 import { captureError } from "@/lib/sentry";
 import { archiveOldAuditRows } from "@/lib/auditRetention";
+import { syncYoutubeViews } from "@/lib/syncViews";
 import { config } from "@/config";
 
 // Same reason as morning-brief: 10s default → 60s. Sundays also do the
@@ -158,9 +161,24 @@ async function run(req: NextRequest) {
           console.error("alfred review failed for", uid, err?.message);
         }
       }
+
+      // Ride-along: the evening autonomous pass (includes the self-documenting
+      // engine). Free Vercel allows only 2 cron jobs, so the agent loop runs
+      // inside the recap. No-op unless autonomy_enabled is on.
+      await runAgentPass(uid, "evening").catch(() => {});
     } catch (err: any) {
       errors.push(`${uid}: ${err?.message ?? "unknown"}`);
       captureError(err, { area: "cron", action: "evening_recap_for_user", route: "/api/cron/evening-recap", userId: uid });
+    }
+  }
+
+  // Weekly ride-along: world-monitor runs once a week (Tuesday, Toronto) inside
+  // the evening recap rather than burning a third cron slot. Best-effort.
+  if (torontoDayOfWeek() === 2 && ownerIds.length > 0) {
+    try {
+      await runWorldMonitor(sb, ownerIds);
+    } catch (err) {
+      captureError(err, { area: "cron", action: "world_monitor", route: "/api/cron/evening-recap" });
     }
   }
 
@@ -175,13 +193,23 @@ async function run(req: NextRequest) {
     captureError(err, { area: "cron", action: "audit_retention", route: "/api/cron/evening-recap" });
   }
 
+  // Daily YouTube → Notion view sync rides along here because free Vercel
+  // only allows 2 cron jobs. Best-effort: never let it break the recap.
+  let viewsSync: { checked: number; updated: number; errors: string[] } | { error: string } = { checked: 0, updated: 0, errors: [] };
+  try {
+    viewsSync = await syncYoutubeViews();
+  } catch (err: any) {
+    viewsSync = { error: err?.message ?? "view sync failed" };
+    captureError(err, { area: "cron", action: "sync_views", route: "/api/cron/evening-recap" });
+  }
+
   if (errors.length === 0 && sent.length > 0) {
-    await telemetry.success({ sent: sent.length, archivedRows });
+    await telemetry.success({ sent: sent.length, archivedRows, viewsSync });
   } else if (sent.length > 0) {
-    await telemetry.partial({ sent: sent.length, errors, archivedRows });
+    await telemetry.partial({ sent: sent.length, errors, archivedRows, viewsSync });
   } else {
     await telemetry.failure(new Error("All owner iterations failed"), { errors });
   }
 
-  return NextResponse.json({ ok: true, sent, errors, archivedRows });
+  return NextResponse.json({ ok: true, sent, errors, archivedRows, viewsSync });
 }

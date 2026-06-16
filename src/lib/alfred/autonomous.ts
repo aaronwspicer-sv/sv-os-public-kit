@@ -2,6 +2,7 @@
 //   - detectPatterns(snapshot)   → list of human-readable alerts worth surfacing
 //   - generateAlfredReview(user) → multi-paragraph coach-style weekly review in Aaron's voice
 //   - generateMorningInsight()   → 1-2 sentence Alfred read on TODAY (added to morning brief)
+//   - generateFullBrief()        → 3-paragraph Alfred narrative for the morning email
 //
 // All of this leans on the SV-GPT skill + live OS state so the output sounds
 // like Alfred, not a generic "your week in numbers" digest.
@@ -9,6 +10,7 @@ import OpenAI from "openai";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@supabase/supabase-js";
 import { gatherUserData } from "@/lib/brief/userData";
+import type { Weather, NewsItem, Ticker } from "@/lib/brief/sources";
 import { getEventsForDate } from "@/lib/calendar";
 import { fetchActiveSkill } from "./identity";
 import { saveMemory } from "./memory";
@@ -208,6 +210,72 @@ Write Alfred's one-sentence morning take.`,
     return r.choices[0]?.message?.content?.trim() ?? null;
   } catch (err: any) {
     console.error("generateMorningInsight failed:", err?.message);
+    return null;
+  }
+}
+
+/** 3-paragraph Alfred narrative for the morning brief email.
+ *  Covers: state of play (numbers + trajectory), world context (news/markets),
+ *  and the one move for today. Caller passes pre-fetched data + sources so we
+ *  don't double-fetch from the cron. */
+export async function generateFullBrief(
+  userId: string,
+  data: Awaited<ReturnType<typeof gatherUserData>>,
+  patterns: Pattern[],
+  sources: { weather: Weather | null; headlines: NewsItem[]; markets: Ticker[] },
+): Promise<string | null> {
+  if (!process.env.OPENAI_API_KEY) return null;
+  try {
+    const sb = admin();
+    const skill = await fetchActiveSkill(sb, userId);
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+    const marketStr = sources.markets.map(m =>
+      `${m.symbol} $${m.price >= 100 ? Math.round(m.price).toLocaleString() : m.price.toFixed(2)} (${m.changePct >= 0 ? "+" : ""}${m.changePct.toFixed(1)}%)`
+    ).join(", ");
+
+    const r = await openai.chat.completions.create({
+      model: MODEL_FULL,
+      max_tokens: 320,
+      messages: [
+        {
+          role: "system",
+          content: `You are Alfred — ${config.owner.name}'s personal AI. Write the "Alfred's Read" section of their morning brief email.
+
+3 short paragraphs, ~150-180 words total:
+1) State of play: what's actually happening with their numbers + trajectory right now. Call out the gap between input and output if there is one.
+2) World context: one headline or market signal that's directly relevant to their situation as a young creator/entrepreneur. Skip this paragraph if nothing applies — don't force it.
+3) The move: one specific, concrete action to do TODAY based on where they are.
+
+Voice: direct, no filler, no "great work". Numbers where they exist. Short sentences. Match the owner profile below.
+
+OWNER PROFILE:
+${(skill?.content ?? defaultSkill()).slice(0, 3000)}`,
+        },
+        {
+          role: "user",
+          content: `TODAY: ${data.todayDate}
+
+STREAKS: workout ${data.streaks.workout}d · NF ${data.streaks.nf}d · video ${data.streaks.video}d · journal ${data.streaks.journal}d (workout PR: ${data.longestWorkoutEver}d)
+YESTERDAY: ${data.yesterdayLog ? `${[data.yesterdayLog.workout, data.yesterdayLog.nf, data.yesterdayLog.video, data.yesterdayLog.journal].filter(Boolean).length}/4 habits · ${data.yesterdayLog.hours.toFixed(1)}h worked` : "no log"}
+WEEK: ${data.weekHours}h worked · ${data.monthVideos} videos this month
+OPEN TASKS: ${data.todosOpen.slice(0, 6).map(t => t.text).join(" | ") || "none"}
+PIPELINE: ${JSON.stringify(data.videosPipeline)}
+UNREVIEWED TX: ${data.unreviewedTxCount}
+PATTERNS: ${patterns.map(p => `[${p.severity}] ${p.text}`).join(" | ") || "none"}
+
+WORLD:
+Weather: ${sources.weather ? `${sources.weather.tempC}°C · high ${sources.weather.highC}°` : "n/a"}
+Markets: ${marketStr || "unavailable"}
+Headlines: ${sources.headlines.slice(0, 5).map(h => h.title).join(" | ") || "none"}
+
+Write Alfred's Read now. Three paragraphs, no greetings, no sign-off.`,
+        },
+      ],
+    });
+    return r.choices[0]?.message?.content?.trim() ?? null;
+  } catch (err: any) {
+    console.error("generateFullBrief failed:", err?.message);
     return null;
   }
 }

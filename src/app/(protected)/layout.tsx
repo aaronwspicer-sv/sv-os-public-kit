@@ -11,6 +11,14 @@ import { IdleLock } from "@/components/security/IdleLock";
 import { SessionPing } from "@/components/security/SessionPing";
 import { AlfredFab } from "@/components/alfred/AlfredFab";
 import { WakeWord } from "@/components/alfred/WakeWord";
+import { ProactiveChecker } from "@/components/alfred/ProactiveChecker";
+import { AlfredBar } from "@/components/alfred/AlfredBar";
+import { AlfredMiniOrb } from "@/components/alfred/AlfredMiniOrb";
+import { NavOverlay } from "@/components/alfred/NavOverlay";
+import { CameraWatch } from "@/components/alfred/CameraWatch";
+import { AlfredDockProvider } from "@/lib/alfred/dockContext";
+import { RealtimeProvider } from "@/lib/alfred/realtimeContext";
+import { AlfredVoiceBanner } from "@/components/alfred/AlfredVoiceBanner";
 import { BootGate } from "@/components/BootGate";
 import { OnboardingGate } from "@/components/onboarding/OnboardingGate";
 import { DemoModeProvider } from "@/components/ui/DemoModeContext";
@@ -42,13 +50,15 @@ export default async function ProtectedLayout({ children }: { children: React.Re
   return (
     <ToastProvider>
       <DemoModeProvider>
+      <AlfredDockProvider>
+      <RealtimeProvider>
       <BootGate>
         <OnboardingGate>
         <div className="min-h-screen bg-canvas">
           <DemoModeBanner />
           <Sidebar />
-          <main className="md:ml-[220px] min-h-screen pb-24 md:pb-0">
-            <div className="max-w-5xl mx-auto px-4 md:px-8 py-6 md:py-8">
+          <main className="md:ml-[220px] min-h-screen pb-24 md:pb-9">
+            <div className="max-w-3xl mx-auto px-4 md:px-8 py-6 md:py-8">
               <PageTransition>{children}</PageTransition>
             </div>
           </main>
@@ -58,10 +68,18 @@ export default async function ProtectedLayout({ children }: { children: React.Re
           <IdleLock />
           <SessionPing />
           <AlfredFab />
+          <AlfredVoiceBanner />
           <WakeWord />
+          <ProactiveChecker />
+          <AlfredBar />
+          <AlfredMiniOrb />
+          <NavOverlay />
+          <CameraWatch />
         </div>
         </OnboardingGate>
       </BootGate>
+      </RealtimeProvider>
+      </AlfredDockProvider>
       </DemoModeProvider>
     </ToastProvider>
   );

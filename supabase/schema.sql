@@ -589,8 +589,65 @@ create table if not exists public.alfred_settings (
 -- Backfill columns on existing deployments
 alter table public.alfred_settings add column if not exists onboarded_at timestamptz;
 alter table public.alfred_settings add column if not exists onboarding_tier text;
+-- Autonomous Alfred master opt-in (Phase 0 "cage"). Defaults FALSE — the
+-- autonomous loop only acts when this is true. Separate from alfred_disabled
+-- (panic switch). Chat/voice Alfred is unaffected by this flag.
+alter table public.alfred_settings add column if not exists autonomy_enabled boolean not null default false;
 alter table public.alfred_settings enable row level security;
 create policy "Users manage own alfred settings" on public.alfred_settings for all
+  using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- ─────────────────────────────────────────────────────────────
+-- Autonomous Alfred action ledger (Phase 0 "cage"). Every state-changing
+-- tool call Alfred makes writes a tier-classified row here — the source for
+-- the "what Alfred did" activity feed and the home for undo tokens +
+-- proposal/approval rows in later phases.
+-- ─────────────────────────────────────────────────────────────
+create table if not exists public.alfred_actions (
+  id            uuid primary key default gen_random_uuid(),
+  user_id       uuid not null references auth.users(id) on delete cascade,
+  tier          text not null check (tier in ('green','amber','red')),
+  boundary      text not null default 'internal' check (boundary in ('internal','outbound')),
+  tool          text not null,
+  summary       text,
+  justification text,
+  tainted       boolean not null default false,
+  taint_sources text[],
+  origin        text not null default 'chat'
+                  check (origin in ('chat','voice','autonomous','exec')),
+  status        text not null default 'done'
+                  check (status in ('proposed','done','failed','denied','reversed')),
+  reversible    boolean not null default false,
+  undo_token    text,
+  reversed      boolean not null default false,
+  payload       jsonb,                                 -- proposed action's args (red gate)
+  created_at    timestamptz not null default now()
+);
+create index if not exists alfred_actions_user_created
+  on public.alfred_actions(user_id, created_at desc);
+alter table public.alfred_actions enable row level security;
+create policy "Users manage own alfred actions" on public.alfred_actions for all
+  using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- ─────────────────────────────────────────────────────────────
+-- Autonomous Alfred capture buffer (Phase 2 self-documenting). Raw fresh build
+-- material (commits, published videos) captured the instant it happens, for the
+-- evening self-doc pass to draft content from.
+-- ─────────────────────────────────────────────────────────────
+create table if not exists public.alfred_capture_buffer (
+  id         uuid primary key default gen_random_uuid(),
+  user_id    uuid not null references auth.users(id) on delete cascade,
+  kind       text not null check (kind in ('commit','video','note')),
+  title      text,
+  body       text,
+  meta       jsonb,
+  consumed   boolean not null default false,
+  created_at timestamptz not null default now()
+);
+create index if not exists alfred_capture_unconsumed
+  on public.alfred_capture_buffer(user_id, consumed, created_at desc);
+alter table public.alfred_capture_buffer enable row level security;
+create policy "Users manage own capture buffer" on public.alfred_capture_buffer for all
   using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 -- ─────────────────────────────────────────────────────────────

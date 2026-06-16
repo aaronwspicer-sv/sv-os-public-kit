@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
   if (!gate.ok) return gate.error;
   const { user, supabase } = gate;
 
-  const { id, pillar = "Journey", type = "Long Form", effortLevel = "Medium" } = await req.json();
+  const { id, pillar = "Building AI Systems", type = "Long Form", effortLevel = "Medium" } = await req.json();
   if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
 
   // Fetch the idea

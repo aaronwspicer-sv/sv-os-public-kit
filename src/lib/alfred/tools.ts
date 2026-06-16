@@ -11,12 +11,20 @@ import { gatherUserData } from "@/lib/brief/userData";
 import { saveMemory, recallMemories } from "./memory";
 import { torontoTodayBounds, torontoDay } from "@/lib/torontoDay";
 import { getEventsForDate, getUpcomingEvents } from "@/lib/calendar";
+import { classifyTier, boundaryOf, isTaintedSource, recordAction, assertNoMoneyMovement } from "./actions";
+import { scanEgress } from "./egress";
 import { config } from "@/config";
 
 export interface ToolCtx {
   userId: string;
   supabase: SupabaseClient;
   args: any;
+  /** How this tool call was initiated. Drives the action ledger's `origin`.
+   *  Defaults to "chat" when unset. */
+  origin?: import("./actions").ActionOrigin;
+  /** Suppress executeTool's auto-ledger write. The autonomous executor sets
+   *  this because it records its own richer row (with justification). */
+  skipLedger?: boolean;
 }
 
 /** Sensitivity tier for per-tool authorization (see executeTool below).
@@ -35,6 +43,19 @@ export interface ToolDef {
   parameters: any; // JSON schema
   /** Authorization tier. Defaults to "safe" if omitted (audited as 'write' for safety). */
   sensitivity?: ToolSensitivity;
+  // ── Autonomy metadata (Phase 0 "cage") ──
+  /** Blast-radius tier. If omitted, derived from `sensitivity` by classifyTier
+   *  (write→green, finance/destructive→amber, outbound→red). Set explicitly to
+   *  override. */
+  tier?: import("./actions").ActionTier;
+  /** Does this action leave the boundary? Outbound actions are red-tier and
+   *  human-gated. Defaults to "internal". */
+  boundary?: import("./actions").ActionBoundary;
+  /** Can this action be undone? Drives the undo handler in later phases. */
+  reversible?: boolean;
+  /** MUST never be true. Alfred holds no money-movement capability; this field
+   *  exists only so the invariant can be asserted at runtime + in tests. */
+  movesMoney?: boolean;
   execute: (ctx: ToolCtx) => Promise<any>;
 }
 
@@ -998,7 +1019,7 @@ const pipeline_create: ToolDef = {
     properties: {
       working_title:   { type: "string", description: "Concept title (will be refined in Stage 2)" },
       type:            { type: "string", enum: ["Long Form", "Standalone Short"] },
-      content_pillar:  { type: "string", enum: ["Process", "Proof", "Journey", "Lessons"] },
+      content_pillar:  { type: "string", enum: ["Building AI Systems", "Freedom Building", "Life & Experiments"] },
       concept_brief:   { type: "string", description: "Full concept brief markdown — what the video is, why it matters, who it's for, the hook angle." },
       slug:            { type: "string", description: "Optional. Auto-generated from title if omitted." },
     },
@@ -1158,7 +1179,7 @@ const pipeline_set_meta: ToolDef = {
     properties: {
       slug:           { type: "string" },
       final_title:    { type: "string" },
-      content_pillar: { type: "string", enum: ["Process", "Proof", "Journey", "Lessons"] },
+      content_pillar: { type: "string", enum: ["Building AI Systems", "Freedom Building", "Life & Experiments"] },
       type:           { type: "string", enum: ["Long Form", "Standalone Short"] },
     },
     required: ["slug"],
@@ -1312,6 +1333,176 @@ const list_notes: ToolDef = {
   },
 };
 
+// ─────────────────────────────────────────────────────────────
+//  PEOPLE — Alfred's social graph. Everyone Aaron has introduced.
+// ─────────────────────────────────────────────────────────────
+
+const introduce_person: ToolDef = {
+  name: "introduce_person",
+  description: "Save or update a person Aaron is introducing to Alfred. Call when Aaron says 'this is X', 'Alfred meet X', 'remember X', or 'X is my Y'. If the person already exists (by name), this updates their record.",
+  sensitivity: "write",
+  parameters: {
+    type: "object",
+    properties: {
+      name:           { type: "string",  description: "Their first name (or name Aaron uses for them)" },
+      relationship:   { type: "string",  description: "How they relate to Aaron — e.g. 'best friend', 'mom', 'editor', 'girlfriend', 'business partner'" },
+      context:        { type: "string",  description: "Key facts Alfred should know about this person — personality, what they're working on, how to treat them, shared history with Aaron" },
+      trust_level:    { type: "string",  enum: ["trusted", "guest_only"], description: "trusted = remembers them across sessions; guest_only = current session only" },
+      can_query_data: { type: "boolean", description: "Can they ask Alfred about Aaron's data (goals, stats, finances)? Default false." },
+    },
+    required: ["name", "relationship"],
+  },
+  execute: async ({ userId, supabase, args }) => {
+    const name = String(args.name ?? "").trim();
+    if (!name) return { error: "Name required" };
+    const record = {
+      user_id:        userId,
+      name,
+      relationship:   String(args.relationship ?? ""),
+      context:        String(args.context ?? ""),
+      trust_level:    (args.trust_level === "guest_only" ? "guest_only" : "trusted") as "trusted" | "guest_only",
+      can_query_data: Boolean(args.can_query_data ?? false),
+      updated_at:     new Date().toISOString(),
+    };
+    // Upsert by (user_id, name)
+    const { data: existing } = await supabase
+      .from("alfred_people").select("id").eq("user_id", userId).ilike("name", name).maybeSingle();
+    let result: any;
+    if (existing) {
+      const { data, error } = await supabase
+        .from("alfred_people").update(record).eq("id", existing.id).select("id, name").single();
+      if (error) return { error: error.message };
+      result = { ok: true, action: "updated", ...data };
+    } else {
+      const { data, error } = await supabase
+        .from("alfred_people").insert(record).select("id, name").single();
+      if (error) return { error: error.message };
+      result = { ok: true, action: "introduced", ...data };
+    }
+    await supabase.from("audit_log").insert({
+      user_id: userId, action: "alfred_person_introduced",
+      metadata: { name, relationship: record.relationship, trust_level: record.trust_level },
+    }).then(() => {}, () => {});
+    return result;
+  },
+};
+
+const get_people: ToolDef = {
+  name: "get_people",
+  description: "List everyone Aaron has introduced Alfred to — their name, relationship, context, and trust level.",
+  sensitivity: "safe",
+  parameters: { type: "object", properties: {}, required: [] },
+  execute: async ({ userId, supabase }) => {
+    const { data } = await supabase
+      .from("alfred_people")
+      .select("id, name, relationship, context, trust_level, can_query_data, last_seen_at, created_at")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: true });
+    return { count: data?.length ?? 0, people: data ?? [] };
+  },
+};
+
+const update_person: ToolDef = {
+  name: "update_person",
+  description: "Update what Alfred knows about someone — add context, change trust level, update relationship. Use when Aaron says 'actually Jake is also my business partner now' or 'add that Sarah likes X'.",
+  sensitivity: "write",
+  parameters: {
+    type: "object",
+    properties: {
+      name:           { type: "string" },
+      relationship:   { type: "string" },
+      context:        { type: "string" },
+      trust_level:    { type: "string", enum: ["trusted", "guest_only"] },
+      can_query_data: { type: "boolean" },
+    },
+    required: ["name"],
+  },
+  execute: async ({ userId, supabase, args }) => {
+    const name = String(args.name ?? "").trim();
+    const { data: existing } = await supabase
+      .from("alfred_people").select("id, context").eq("user_id", userId).ilike("name", name).maybeSingle();
+    if (!existing) return { error: `No one named "${name}" found. Use introduce_person to add them first.` };
+    const update: any = { updated_at: new Date().toISOString() };
+    if (args.relationship)   update.relationship   = String(args.relationship);
+    if (args.trust_level)    update.trust_level    = args.trust_level;
+    if (typeof args.can_query_data === "boolean") update.can_query_data = args.can_query_data;
+    if (args.context) {
+      // Append to existing context rather than overwriting
+      update.context = existing.context
+        ? `${existing.context}\n${String(args.context)}`
+        : String(args.context);
+    }
+    const { error } = await supabase.from("alfred_people").update(update).eq("id", existing.id);
+    if (error) return { error: error.message };
+    return { ok: true, name, updated: Object.keys(update).filter(k => k !== "updated_at") };
+  },
+};
+
+const forget_person: ToolDef = {
+  name: "forget_person",
+  description: "Remove someone from Alfred's people directory. Use when Aaron says 'forget Jake' or 'remove X from your memory'.",
+  sensitivity: "destructive",
+  parameters: {
+    type: "object",
+    properties: { name: { type: "string", description: "The person's name" } },
+    required: ["name"],
+  },
+  execute: async ({ userId, supabase, args }) => {
+    const name = String(args.name ?? "").trim();
+    const { data: existing } = await supabase
+      .from("alfred_people").select("id").eq("user_id", userId).ilike("name", name).maybeSingle();
+    if (!existing) return { error: `No one named "${name}" found.` };
+    const { error } = await supabase.from("alfred_people").delete().eq("id", existing.id);
+    if (error) return { error: error.message };
+    await supabase.from("audit_log").insert({
+      user_id: userId, action: "alfred_person_forgotten", metadata: { name },
+    }).then(() => {}, () => {});
+    return { ok: true, forgotten: name };
+  },
+};
+
+// ── OUTBOUND (red) — Phase 4. Never runs autonomously (executeTool blocks
+//    origin 'autonomous' for red/outbound). Only the approval route executes it,
+//    with origin 'exec', after the owner approves. Egress-scanned here too. ──
+const publish_update: ToolDef = {
+  name: "publish_update",
+  description: "Publish a short public-style progress update / Scoreboard line. OUTBOUND — this never runs on its own; it is always proposed and waits for the owner's one-tap approval. On approval it is delivered to the owner to post.",
+  tier: "red",
+  boundary: "outbound",
+  parameters: {
+    type: "object",
+    properties: {
+      title: { type: "string", description: "Optional short label" },
+      body:  { type: "string", description: "The update text — cold-audience, specific, in the owner's voice" },
+    },
+    required: ["body"],
+  },
+  execute: async ({ userId, supabase, args }) => {
+    const body = String(args.body ?? "").trim();
+    if (!body) return { error: "Empty update" };
+    // Egress wall — defense in depth (the approval route already scanned).
+    const scan = scanEgress(body);
+    if (!scan.ok) return { error: `Blocked by egress wall: ${scan.reasons.join(", ")}`, code: "egress_blocked" };
+    if (!process.env.RESEND_API_KEY) return { error: "Resend not configured" };
+    try {
+      const { Resend } = await import("resend");
+      const resend = new Resend(process.env.RESEND_API_KEY);
+      await resend.emails.send({
+        from: config.brand.emailFrom,
+        to:   config.owner.alertEmail,
+        subject: `📣 Approved update${args.title ? ` — ${String(args.title)}` : ""}`,
+        html: `<div style="font-family:-apple-system,Segoe UI,sans-serif;white-space:pre-wrap;color:#fafafa;background:#000;padding:20px;border-radius:12px;">${scan.redacted}</div>`,
+      });
+    } catch (err: any) {
+      return { error: err?.message ?? "Send failed" };
+    }
+    await supabase.from("audit_log").insert({
+      user_id: userId, action: "alfred_update_published", metadata: { title: args.title ?? null },
+    }).then(() => {}, () => {});
+    return { ok: true, delivered: "email" };
+  },
+};
+
 export const TOOLS: ToolDef[] = [
   get_snapshot,
   get_log_by_date,
@@ -1350,11 +1541,18 @@ export const TOOLS: ToolDef[] = [
   pipeline_create,
   pipeline_save_stage,
   pipeline_set_meta,
+  // People
+  introduce_person,
+  get_people,
+  update_person,
+  forget_person,
   // Research
   youtube_search,
   youtube_channel_lookup,
   web_search,
   fetch_url,
+  // Outbound (red — human-gated)
+  publish_update,
 ];
 
 /** OpenAI tool definitions ready to send with chat.completions */
@@ -1382,10 +1580,29 @@ export function wrapUntrusted(name: string, raw: any): any {
   };
 }
 
+// Money invariant — asserted once when this module loads. Alfred holds no
+// money-movement capability; if a tool ever declares movesMoney:true the
+// registry refuses to come up. Fail closed, loudly, at boot.
+assertNoMoneyMovement(TOOLS);
+
 export async function executeTool(name: string, ctx: ToolCtx): Promise<any> {
   const t = TOOLS.find(x => x.name === name);
   if (!t) return { error: `Unknown tool: ${name}` };
   const sens: ToolSensitivity = t.sensitivity ?? "write";
+
+  // ── Money invariant (defense in depth) — refuse any money-movement tool at
+  //    call time even if one slipped past the boot-time assert. ──
+  if (t.movesMoney === true) {
+    return { error: "Blocked: Alfred cannot move money.", code: "money_movement_forbidden" };
+  }
+
+  // ── Red gate (structural) — outbound/irreversible actions can NEVER execute
+  //    from the autonomous loop. They must be proposed and human-approved (the
+  //    approval route runs them with origin 'exec'). This is what makes "full"
+  //    autonomy safe: the autonomous origin cannot reach a send/publish. ──
+  if (ctx.origin === "autonomous" && (boundaryOf(t) === "outbound" || classifyTier(t) === "red")) {
+    return { error: "Red/outbound actions require human approval.", code: "needs_approval" };
+  }
 
   // ── Finance gate — applies to chat tool loop AND voice tool loop AND exec-tool ──
   if (sens === "finance" || sens === "destructive") {
@@ -1406,13 +1623,29 @@ export async function executeTool(name: string, ctx: ToolCtx): Promise<any> {
 
   try {
     const out = await t.execute(ctx);
+    const ok = !(out && out.error);
     // Audit every non-read tool call
     if (sens === "write" || sens === "destructive" || sens === "finance") {
       await ctx.supabase.from("audit_log").insert({
         user_id: ctx.userId,
         action: "alfred_tool_call",
-        metadata: { tool: name, sensitivity: sens, ok: !(out && out.error) },
+        metadata: { tool: name, sensitivity: sens, ok },
       }).then(() => {}, () => {});
+    }
+    // Action ledger — record every state-changing tool call (green/amber) to
+    // the "what Alfred did" feed. Reads (safe/external) classify as null and
+    // are skipped. Best-effort; never breaks the tool call.
+    const tier = classifyTier(t);
+    if (tier && !ctx.skipLedger) {
+      await recordAction(ctx.supabase, ctx.userId, {
+        tool: name,
+        tier,
+        boundary: boundaryOf(t),
+        origin: ctx.origin ?? "chat",
+        status: ok ? "done" : "failed",
+        reversible: t.reversible ?? false,
+        tainted: isTaintedSource(t),
+      });
     }
     // External (web/url) output is third-party — wrap so the model can't
     // be tricked into following instructions inside it.

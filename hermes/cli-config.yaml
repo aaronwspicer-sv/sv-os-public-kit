@@ -1,0 +1,56 @@
+# Hermes Agent — Alfred configuration
+# Drop this file in ~/.hermes/cli-config.yaml on your Hermes host
+# Then run: hermes gateway start
+
+# ── Model ─────────────────────────────────────────────────────
+# Hermes 3 405B — Nous Research's most powerful model, served via OpenRouter.
+# Fine-tuned on Llama 3.1 405B specifically for agentic tool use and instruction
+# following. Substantially better than GPT-4.1 for complex multi-step tasks.
+# Swap to "nousresearch/hermes-3-llama-3.1-70b" for faster/cheaper responses.
+model:
+  default: "nousresearch/hermes-3-llama-3.1-405b"
+
+providers:
+  openrouter:
+    api_key: "${OPENROUTER_API_KEY}"
+    base_url: "https://openrouter.ai/api/v1"
+
+# ── Memory ────────────────────────────────────────────────────
+# SQLite by default — persistent across restarts via volume mount.
+# Upgrade to Honcho for cross-device sync and richer user modeling.
+memory:
+  provider: "sqlite"
+  # Uncomment to use Honcho for cross-device persistent memory:
+  # provider: "honcho"
+  # honcho:
+  #   api_key: "${HONCHO_API_KEY}"
+
+# ── Skills ────────────────────────────────────────────────────
+skills:
+  auto_create: true    # Hermes writes skills automatically after complex tasks
+  auto_load: true      # Skills are injected into context on each session
+  directory: "~/.hermes/skills/alfred"
+
+# ── Gateway ───────────────────────────────────────────────────
+gateway:
+  platforms:
+    - api_server:
+        host: "0.0.0.0"
+        port: 8642
+        key: "${HERMES_API_KEY}"   # Bearer token — set this in your env
+        cors_origins:
+          - "https://*.vercel.app"
+          - "https://spiceros.vercel.app"   # replace with your actual domain
+          - "http://localhost:3000"
+          - "http://localhost:3001"
+        request_timeout_seconds: 300   # long-running subagent tasks need time
+
+# ── Subagents ────────────────────────────────────────────────
+agent:
+  max_subagents: 6      # max parallel subagents per request
+  subagent_timeout: 120 # seconds per subagent
+
+# ── Logging ──────────────────────────────────────────────────
+logging:
+  level: "info"
+  file: "~/.hermes/alfred.log"

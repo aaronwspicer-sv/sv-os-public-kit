@@ -26,7 +26,7 @@ export const DEMO_MONTHLY = Array.from({ length: 12 }, (_, i) => ({
   income:  [4200, 3800, 5100, 4400, 5600, 4100, 4900, 6200, 4800, 4100, 5300, 4700][i],
   expense: [3100, 2900, 3400, 3200, 3600, 2800, 3300, 3900, 3100, 2900, 3500, 3400][i],
   published: [2, 1, 3, 2, 4, 2, 3, 3, 2, 1, 3, 2][i],
-  byPillar: { Journey: 1, Process: 1, Proof: 0, Lessons: 0 },
+  byPillar: { "Building AI Systems": 2, "Freedom Building": 1, "Life & Experiments": 0 },
 }));
 
 // ── Daily log ────────────────────────────────────────────────
@@ -89,13 +89,13 @@ function demoVid(p: Partial<any> & { id: string; title: string; status: string; 
   };
 }
 export const DEMO_VIDEOS = [
-  demoVid({ id: "dv1", title: "I built my own AI to run my life", status: "Live", pillar: "Process", views: 48200, publishDate: "2026-05-20", effortLevel: "High" }),
-  demoVid({ id: "dv2", title: "Why I sold my console to fund the dream", status: "Live", pillar: "Journey", views: 21400, publishDate: "2026-05-06" }),
-  demoVid({ id: "dv3", title: "Building in public — month one", status: "Live", pillar: "Proof", views: 9800, publishDate: "2026-05-13" }),
-  demoVid({ id: "dv4", title: "The launch video (editing now)", status: "Editing", pillar: "Process", publishDate: "2026-06-04", effortLevel: "High" }),
-  demoVid({ id: "dv5", title: "30 days of showing up", status: "Filming", pillar: "Proof" }),
-  demoVid({ id: "dv6", title: "What my differences taught me about leverage", status: "Scripting", pillar: "Journey" }),
-  demoVid({ id: "dv7", title: "The system behind everything", status: "Idea", pillar: "Lessons" }),
+  demoVid({ id: "dv1", title: "I built my own AI to run my life", status: "Live", pillar: "Building AI Systems", views: 48200, publishDate: "2026-05-20", effortLevel: "High" }),
+  demoVid({ id: "dv2", title: "Why I sold my console to fund the dream", status: "Live", pillar: "Freedom Building", views: 21400, publishDate: "2026-05-06" }),
+  demoVid({ id: "dv3", title: "Building in public — month one", status: "Live", pillar: "Building AI Systems", views: 9800, publishDate: "2026-05-13" }),
+  demoVid({ id: "dv4", title: "The launch video (editing now)", status: "Editing", pillar: "Building AI Systems", publishDate: "2026-06-04", effortLevel: "High" }),
+  demoVid({ id: "dv5", title: "30 days of showing up", status: "Filming", pillar: "Building AI Systems" }),
+  demoVid({ id: "dv6", title: "What my differences taught me about leverage", status: "Scripting", pillar: "Freedom Building" }),
+  demoVid({ id: "dv7", title: "The system behind everything", status: "Idea", pillar: "Life & Experiments" }),
 ];
 
 // ── Idea inbox (the /d/content InboxTab) ─────────────────────

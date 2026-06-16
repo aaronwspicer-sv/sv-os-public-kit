@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { config } from "@/config";
+import { PILLAR_COLOR, normalizePillar } from "@/lib/pillars";
 import { useDemoMode } from "@/components/ui/DemoModeContext";
 
 // ── Google Calendar embed config ──────────────────────────────
@@ -49,10 +50,6 @@ function buildEmbedUrl(mode: typeof VIEWS[number]["key"]): string {
 interface Todo { id: string; text: string; done: boolean; date: string; }
 interface PublishedItem { id: string; title: string; pillar: string; status: string; publishDate: string; type: string; }
 interface LogEntry { workout: boolean; nf: boolean; postedVideo: boolean; reflectedJournal: boolean; hoursWorked: number; }
-
-const PILLAR_COLOR: Record<string, string> = {
-  Journey: "#a78bfa", Process: "#1D9BF0", Proof: "#34d399", Lessons: "#fbbf24",
-};
 
 // ── Page ─────────────────────────────────────────────────────
 export default function CalendarPage() {
@@ -355,7 +352,7 @@ function AgendaRow({ item }: { item: AgendaItem }) {
   return (
     <Link href="/d/content" className="-mx-1">
       <div className="flex items-center gap-2.5 px-3 py-2 rounded-[10px] bg-[rgba(255,255,255,0.02)] border border-border-dim hover:border-[rgba(29,155,240,0.25)] transition-all">
-        <Video size={12} style={{ color: PILLAR_COLOR[item.pillar] ?? "#94a3b8" }} />
+        <Video size={12} style={{ color: PILLAR_COLOR[normalizePillar(item.pillar)] }} />
         <span className="flex-1 text-[12px] text-text-1 truncate">{item.title}</span>
         <span className="text-[9px] uppercase tracking-widest text-text-3">{item.status}</span>
       </div>

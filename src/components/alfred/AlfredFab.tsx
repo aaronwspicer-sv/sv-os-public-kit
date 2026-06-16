@@ -3,7 +3,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Sparkles, X, Send, RefreshCcw, Wrench, ChevronDown, Image as ImageIcon, Trash2, Mic, MicOff, Square, Volume2, VolumeX, Headphones, Radio, PhoneOff, History, Pencil, Check } from "lucide-react";
 import { useRealtime } from "@/lib/alfred/useRealtime";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
+import { useAlfredDock } from "@/lib/alfred/dockContext";
 import { config } from "@/config";
 import { cannedAlfred, demoAudioSrc, DEMO_ALFRED_PROMPTS } from "@/lib/demoAlfred";
 
@@ -40,14 +41,14 @@ function loadStr(key: string, def: string): string {
 
 const MODEL_KEY = "alfred_model";
 const MODEL_OPTIONS: { id: string; label: string; sublabel: string }[] = [
-  { id: "gpt-4o-mini", label: "GPT-4o mini", sublabel: "Fast · everyday default" },
-  { id: "gpt-4o",      label: "GPT-4o",      sublabel: "Smartest · slower · more $" },
-  { id: "gpt-4.1-mini",label: "GPT-4.1 mini",sublabel: "Cheap · long context" },
-  { id: "o4-mini",     label: "o4-mini",     sublabel: "Reasoning · thinks step-by-step" },
+  { id: "gpt-4.1",      label: "GPT-4.1",      sublabel: "Smartest · default" },
+  { id: "gpt-4.1-mini", label: "GPT-4.1 mini",  sublabel: "Fast · cheap · everyday" },
+  { id: "o4-mini",      label: "o4-mini",        sublabel: "Reasoning · thinks step-by-step" },
+  { id: "gpt-4o",       label: "GPT-4o",         sublabel: "Legacy fallback" },
 ];
 function loadModel(): string {
-  if (typeof window === "undefined") return "gpt-4o-mini";
-  try { return localStorage.getItem(MODEL_KEY) ?? "gpt-4o-mini"; } catch { return "gpt-4o-mini"; }
+  if (typeof window === "undefined") return "gpt-4.1";
+  try { return localStorage.getItem(MODEL_KEY) ?? "gpt-4.1"; } catch { return "gpt-4.1"; }
 }
 
 // Slash commands expand a short trigger into a rich analyst prompt.
@@ -56,31 +57,31 @@ const SLASH_COMMANDS: { id: string; description: string; expand: () => string; p
   {
     id: "/review",
     description: "Run a weekly review of the last 7 days",
-    preferredModel: "gpt-4o",
+    preferredModel: "gpt-4.1",
     expand: () => "Run my weekly review. Pull the last 7 days vs the prior 7 days, compare. Headline first. Then the numbers that prove it. Then patterns you noticed. Then ONE concrete recommendation. No filler.",
   },
   {
     id: "/compare",
     description: "Compare this week to last (or pass dates)",
-    preferredModel: "gpt-4o",
+    preferredModel: "gpt-4.1",
     expand: () => "Compare this week (last 7 days through today) to the previous 7 days. Show deltas for hours, habit %, video output, content shipped. What got better, what slipped, what should I change?",
   },
   {
     id: "/month",
     description: "Compare this month to last month",
-    preferredModel: "gpt-4o",
+    preferredModel: "gpt-4.1",
     expand: () => "Compare this month so far to last month at the same point. Use get_period_summary twice. Tell me whether I'm tracking up or down on every habit and on hours. Give me the headline + the verdict + ONE move.",
   },
   {
     id: "/patterns",
     description: "Find behavioral patterns in last 30 days",
-    preferredModel: "gpt-4o",
+    preferredModel: "gpt-4.1",
     expand: () => "Look at my last 30 days of logs (use get_recent_logs days:30). Find behavioral patterns. Especially: which habits cluster together? Does NF correlate with workout? Do high-hour days follow journaling? Be specific with day counts and percentages. Don't make stuff up — only call out what the data shows.",
   },
   {
     id: "/leaks",
     description: "Where am I leaking time, money, momentum",
-    preferredModel: "gpt-4o",
+    preferredModel: "gpt-4.1",
     expand: () => "Where am I leaking? Pull recent finance summary, unreviewed transactions, content pipeline counts, and the last 14 days of logs. Tell me the top 3 leaks — time, money, or momentum. Be brutal but specific.",
   },
   {
@@ -97,7 +98,7 @@ const SLASH_COMMANDS: { id: string; description: string; expand: () => string; p
   {
     id: "/coach",
     description: "Run the Alfred coach review (Sunday-style)",
-    preferredModel: "gpt-4o",
+    preferredModel: "gpt-4.1",
     expand: () => `Run a coach review of where I am right now. Pull get_snapshot + get_recent_logs(days:7) + compare_periods (this week vs last). Then write a tight 4-section review in MY voice:
 
 1) HEADLINE — one-line verdict
@@ -111,7 +112,7 @@ Voice rules locked. After you finish writing, call remember to save the review (
   {
     id: "/research",
     description: "Deep web research on a topic + synthesize for SV",
-    preferredModel: "gpt-4o",
+    preferredModel: "gpt-4.1",
     expand: () => `Deep research on the topic I'm about to give you. Run 1–3 focused web_search calls (don't shotgun). For any source that matters, fetch_url to read it properly. Then synthesize:
 
 1. The 3 most important things I should know
@@ -124,17 +125,17 @@ No filler. No "this is a fascinating topic." Just signal.`,
   {
     id: "/news",
     description: "Recent news scan on a topic with SV angle",
-    preferredModel: "gpt-4o",
+    preferredModel: "gpt-4.1",
     expand: () => `Scan recent news on the topic I'm about to give you. Use web_search with depth:'basic' and a query that targets the last few days. Then:
 
 - The 3 most important headlines (one-liner each, attributed)
 - The under-the-radar story most people are missing
-- The angle for an SV video — IF there's a genuine fit for one of the 4 pillars (Process/Proof/Journey/Lessons). Be honest if there isn't.`,
+- The angle for an SV video — IF there's a genuine fit for one of the 3 pillars (Building AI Systems / Freedom Building / Life & Experiments). Be honest if there isn't.`,
   },
   {
     id: "/dealcheck",
     description: "Vet a brand deal / sponsorship email — paste it after",
-    preferredModel: "gpt-4o",
+    preferredModel: "gpt-4.1",
     expand: () => `Vet the brand-deal email I'm about to paste. Work through it systematically:
 
 1. WHO — what company. If unfamiliar, web_search them and fetch_url their site. Confirm they're real.
@@ -151,7 +152,7 @@ Be brutal. The default is pass.`,
   {
     id: "/thumb",
     description: "Critique the attached thumbnail (paste/upload image first)",
-    preferredModel: "gpt-4o",
+    preferredModel: "gpt-4.1",
     expand: () => `Critique the attached thumbnail through a sharp, high-retention YouTube lens.
 
 Score 1–10 on each:
@@ -187,13 +188,13 @@ Output: the rewrite, then 2 alt versions for A/B.`,
   {
     id: "/idea",
     description: "Pipeline · Stage 1 — start a new video",
-    preferredModel: "gpt-4o",
+    preferredModel: "gpt-4.1",
     expand: () => `STAGE 1 — IDEATION. Workshop a new SV video with me from scratch.
 
 Process:
 1. Ask me: Long form (YouTube) or Standalone short (TikTok/Reels)?
 2. Ask: what's the seed? (a moment, a result, a question, a build) — or offer 3 directional pulls based on my recent log entries + content pipeline if I have nothing.
-3. Once we have a seed, push back hard: is this Build+Result+Breakdown material? Which pillar (Process/Proof/Journey/Lessons)? Who specifically is this FOR (the young person who feels different/behind)?
+3. Once we have a seed, push back hard: is this Build+Result+Breakdown material? Which pillar (Building AI Systems / Freedom Building / Life & Experiments)? Who specifically is this FOR (the young person who feels different/behind)?
 4. Refine into a concept brief with: hook angle, one-line premise, the lesson, the proof, the build.
 5. When I confirm, call pipeline_create with the concept_brief as full markdown.
 6. End with the handoff: "✓ Concept locked. Type 'package it' to move to Stage 2."
@@ -203,7 +204,7 @@ Use bandwidth filter — flag if this video is too ambitious for Phase 1. Don't 
   {
     id: "/package",
     description: "Pipeline · Stage 2 — packaging (titles, thumb concept, description)",
-    preferredModel: "gpt-4o",
+    preferredModel: "gpt-4.1",
     expand: () => `STAGE 2 — PACKAGING. Load the latest in-progress video at Stage 1.
 
 Process:
@@ -223,7 +224,7 @@ Process:
   {
     id: "/script",
     description: "Pipeline · Stage 4 — write the script in my voice",
-    preferredModel: "gpt-4o",
+    preferredModel: "gpt-4.1",
     expand: () => `STAGE 4 — SCRIPT. Load the in-progress video's Stage 1 + Stage 2 content first.
 
 Structure (Build + Result + Breakdown):
@@ -248,7 +249,7 @@ Handoff: "✓ Script done. Go film it. Come back and type 'filmed' when you have
   {
     id: "/editbrief",
     description: "Pipeline · Stage 6 — generate edit brief",
-    preferredModel: "gpt-4o",
+    preferredModel: "gpt-4.1",
     expand: () => `STAGE 6 — EDIT BRIEF. Load the in-progress video's script + footage path.
 
 Build a structured Edit Brief with:
@@ -266,7 +267,7 @@ When ready, call pipeline_save_stage(stage:6, content:<full edit brief>). Then o
   {
     id: "/repurpose",
     description: "Pipeline · Stage 7 — extract 2-3 short-form clips",
-    preferredModel: "gpt-4o",
+    preferredModel: "gpt-4.1",
     expand: () => `STAGE 7 — REPURPOSE. Load the in-progress Editing-stage video.
 
 Extract 2-3 short-form clips. For each:
@@ -350,6 +351,11 @@ const TOOL_LABEL: Record<string, string> = {
 };
 
 export function AlfredFab() {
+  const pathname = usePathname();
+  const isConsolePage = pathname === "/d";
+  const { docked } = useAlfredDock();
+  // Console page owns ALL Alfred UI — FAB must be completely absent
+  if (isConsolePage || docked) return null;
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
@@ -363,7 +369,7 @@ export function AlfredFab() {
   const [threadsLoading, setThreadsLoading] = useState(false);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
-  const [model, setModelState] = useState<string>("gpt-4o-mini");
+  const [model, setModelState] = useState<string>("gpt-4.1");
   const [modelOpen, setModelOpen] = useState(false);
   const [pendingImages, setPendingImages] = useState<string[]>([]);
   const [imageError, setImageError] = useState<string | null>(null);
@@ -382,8 +388,7 @@ export function AlfredFab() {
 
   const realtime = useRealtime({
     onNavigate: (url) => {
-      // SPA-style navigation keeps WebRTC alive across the route change
-      try { router.push(url); } catch { window.location.href = url; }
+      window.dispatchEvent(new CustomEvent("alfred:nav-start", { detail: { url } }));
     },
     onUserTurn: (text) => {
       voicePersistedTurnsRef.current.push({ role: "user", content: text });
@@ -597,21 +602,20 @@ export function AlfredFab() {
   }, [voiceLive, realtime, persistVoice, voice]);
 
   // Wake-word listener fires this event — open + voice + (optional) follow-on text
+  // On the console page (/d) we skip opening the popup — the console handles the
+  // wake visually; we only start voice here.
   useEffect(() => {
     const onWake = (e: Event) => {
       const detail = (e as CustomEvent).detail ?? {};
-      setOpen(true);
-      // If user spoke a follow-on phrase ("Hey Alfred, what's my streak?"),
-      // we just open voice — Realtime will pick up their continuing speech.
-      // The 'follow' chunk is captured but discarded for now (different mic source).
+      if (!isConsolePage) setOpen(true);
       setTimeout(() => {
         if (!voiceLive) toggleVoice();
       }, 100);
-      void detail; // future: prefill input if they typed before triggering
+      void detail;
     };
     window.addEventListener("alfred:wake", onWake);
     return () => window.removeEventListener("alfred:wake", onWake);
-  }, [voiceLive, toggleVoice]);
+  }, [voiceLive, toggleVoice, isConsolePage]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -763,6 +767,11 @@ export function AlfredFab() {
               }
               return copy;
             });
+          } else if (payload.kind === "navigate") {
+            const navUrl = payload.data?.url;
+            if (navUrl) {
+              window.dispatchEvent(new CustomEvent("alfred:nav-start", { detail: { url: navUrl } }));
+            }
           } else if (payload.kind === "text") {
             setMessages(prev => {
               const copy = [...prev];
@@ -792,6 +801,23 @@ export function AlfredFab() {
       setBusy(false);
     }
   }, [input, busy, convId, model, pendingImages]);
+
+  // Keep a stable ref so event listeners can call the latest send
+  const sendRef = useRef(send);
+  useEffect(() => { sendRef.current = send; }, [send]);
+
+  // alfred:quick-ask — fired by AlfredBar; opens panel and sends the query
+  useEffect(() => {
+    const h = (e: Event) => {
+      if (isConsolePage) return;
+      const query = (e as CustomEvent).detail?.query as string | undefined;
+      if (!query?.trim()) return;
+      setOpen(true);
+      setTimeout(() => sendRef.current(query.trim()), 150);
+    };
+    window.addEventListener("alfred:quick-ask", h);
+    return () => window.removeEventListener("alfred:quick-ask", h);
+  }, [isConsolePage]);
 
   function newChat() {
     setMessages([]);
@@ -849,14 +875,25 @@ export function AlfredFab() {
 
   return (
     <>
-      <button
-        onClick={() => setOpen(true)}
-        className="fixed bottom-24 md:bottom-6 right-5 z-40 w-12 h-12 rounded-full flex items-center justify-center shadow-[0_10px_30px_rgba(29,155,240,0.35),inset_0_1px_0_rgba(255,255,255,0.3)] hover:scale-105 active:scale-95 transition-all"
-        style={{ background: "linear-gradient(135deg, #1d9bf0 0%, #a78bfa 100%)" }}
-        aria-label="Open Alfred"
-      >
-        <Sparkles size={20} className="text-black" />
-      </button>
+      {/* FAB hidden on /d — the Alfred Console is the interface there */}
+      {!isConsolePage && (
+        <button
+          onClick={() => setOpen(true)}
+          className="fixed bottom-24 md:bottom-6 right-5 z-40 flex items-center gap-2 px-4 py-2.5 hover:scale-[1.03] active:scale-[0.97] transition-all"
+          style={{
+            background: "linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.03) 100%)",
+            border: "1px solid rgba(29,155,240,0.32)",
+            borderTop: "1px solid rgba(29,155,240,0.48)",
+            borderRadius: "999px",
+            backdropFilter: "blur(20px)",
+            boxShadow: "0 4px 20px rgba(0,0,0,0.4), 0 0 12px rgba(29,155,240,0.07), inset 0 1px 0 rgba(255,255,255,0.08)",
+          }}
+          aria-label="Open Alfred"
+        >
+          <Sparkles size={13} className="text-accent" />
+          <span className="text-[12px] font-600 text-text-2 tracking-wide">Alfred</span>
+        </button>
+      )}
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-end md:items-center md:justify-end pointer-events-none">

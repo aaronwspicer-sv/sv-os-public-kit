@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireFinanceAccess } from "@/lib/financeAuth";
 import { notion, DB } from "@/lib/notion";
+import { PILLARS, normalizePillar } from "@/lib/pillars";
 import { config } from "@/config";
 
 // GET /api/year-stats?year=2026
@@ -122,7 +123,7 @@ export async function GET(req: NextRequest) {
     const props = p.properties ?? {};
     return {
       status:      props["Status"]?.select?.name ?? "",
-      pillar:      props["Content Pillar"]?.select?.name ?? "",
+      pillar:      normalizePillar(props["Content Pillar"]?.select?.name),
       type:        props["Type"]?.select?.name ?? "",
       views:       props["Views"]?.number ?? 0,
       publishDate: props["Publish Date"]?.date?.start ?? "",
@@ -132,7 +133,7 @@ export async function GET(req: NextRequest) {
   const longForm  = publishedThisYear.filter(v => v.type === "Long Form").length;
   const shortForm = publishedThisYear.filter(v => v.type !== "Long Form").length;
   const totalViews = publishedThisYear.reduce((s, v) => s + v.views, 0);
-  const byPillar = (["Journey", "Process", "Proof", "Lessons"] as const).map(p => ({
+  const byPillar = PILLARS.map(p => ({
     pillar: p,
     count: publishedThisYear.filter(v => v.pillar === p).length,
     views: publishedThisYear.filter(v => v.pillar === p).reduce((s, v) => s + v.views, 0),
@@ -146,7 +147,7 @@ export async function GET(req: NextRequest) {
     const monthIncome = ledgerRows.filter(r => r.type === "Income" && r.date.startsWith(monthStr)).reduce((s, r) => s + r.amount, 0);
     const monthExpense = ledgerRows.filter(r => (r.type === "Expense" || r.type === "Tax Payment") && r.date.startsWith(monthStr)).reduce((s, r) => s + r.amount, 0);
     const monthPublished = publishedThisYear.filter(v => v.publishDate.startsWith(monthStr));
-    const monthByPillar = (["Journey", "Process", "Proof", "Lessons"] as const).reduce<Record<string, number>>((acc, p) => {
+    const monthByPillar = PILLARS.reduce<Record<string, number>>((acc, p) => {
       acc[p] = monthPublished.filter(v => v.pillar === p).length;
       return acc;
     }, {});

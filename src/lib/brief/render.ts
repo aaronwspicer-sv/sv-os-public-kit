@@ -92,8 +92,9 @@ export function renderMorningBrief(opts: {
   data: UserBriefData;
   sources: Sources;
   alfredMemories?: { content: string; kind: string; created_at: string }[];
+  alfredNarrative?: string;
 }): { subject: string; html: string } {
-  const { name, hero, data, sources, alfredMemories } = opts;
+  const { name, hero, data, sources, alfredMemories, alfredNarrative } = opts;
   const { weather, headlines, markets, jays } = sources;
 
   const dateLabel = new Date().toLocaleDateString("en-CA", {
@@ -173,6 +174,12 @@ export function renderMorningBrief(opts: {
     ${sunStr ? `<div style="font-size:11px;color:${TEXT_3};margin-top:2px;">${esc(sunStr)}</div>` : ""}
 
     ${heroBlock(hero)}
+
+    ${alfredNarrative ? `
+    <div style="margin:16px 0 20px;padding:18px 20px;border-radius:16px;background:linear-gradient(180deg,rgba(29,155,240,0.05),rgba(167,139,250,0.03));border:1px solid rgba(29,155,240,0.18);">
+      <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:${ACCENT};font-weight:700;margin-bottom:12px;">✦ Alfred's Read</div>
+      ${alfredNarrative.split(/\n\n+/).filter(Boolean).map(p => `<p style="font-size:14px;color:${TEXT_1};line-height:1.65;margin:0 0 10px;">${esc(p)}</p>`).join("")}
+    </div>` : ""}
 
     ${sectionTitle("Today")}
     <div style="font-size:13px;color:${TEXT_2};margin-bottom:8px;">📋 ${data.todosOpenCount} task${data.todosOpenCount === 1 ? "" : "s"} open</div>
