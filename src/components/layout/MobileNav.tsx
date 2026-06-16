@@ -1,16 +1,16 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, BookOpen, Target, DollarSign, Video } from "lucide-react";
+import { LayoutDashboard, BookOpen, Sparkles, DollarSign, Video } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEffect, useRef, useState } from "react";
 
 const tabs = [
-  { href: "/d",          icon: Home,       label: "Home" },
-  { href: "/d/entry",    icon: BookOpen,   label: "Entry" },
-  { href: "/d/goals",    icon: Target,     label: "Goals" },
-  { href: "/d/finances", icon: DollarSign, label: "Finances" },
-  { href: "/d/content",  icon: Video,      label: "Content" },
+  { href: "/d",          icon: LayoutDashboard, label: "Bridge" },
+  { href: "/d/entry",    icon: BookOpen,        label: "Entry" },
+  { href: "/d/alfred",   icon: Sparkles,        label: "Alfred" },
+  { href: "/d/finances", icon: DollarSign,      label: "Money" },
+  { href: "/d/content",  icon: Video,           label: "Content" },
 ];
 
 export function MobileNav() {

@@ -70,7 +70,7 @@ export async function runAgentPass(userId: string, pass: PassKind): Promise<Pass
     await sendPushToUser(userId, {
       title: "🤖 Alfred — autonomous pass",
       body: redactForEgress(digest),
-      url: "/d/activity",
+      url: "/d/alfred",
       tag: "agent-pass",
     }, sb).catch(() => {});
   }

@@ -290,20 +290,22 @@ const get_audit_log: ToolDef = {
 
 const navigate_to: ToolDef = {
   name: "navigate_to",
-  description: "Tell the user's browser to navigate to a section of the OS. Returns the URL — the client will route there.",
+  description: "Tell the user's browser to navigate to a section of the OS. Returns the URL — the client will route there. Use 'alfred' (or 'activity') to pull up your own cockpit — what you did on your own, anything waiting for the owner's approval, your memory, identity, and health. Use 'focus' for the work-session timer.",
   sensitivity: "safe",
   parameters: {
     type: "object",
     properties: {
-      page: { type: "string", enum: ["home", "log", "goals", "finances", "content", "calendar", "timeline", "year", "settings", "jays"] },
+      page: { type: "string", enum: ["home", "entry", "goals", "finances", "content", "calendar", "timeline", "year", "focus", "alfred", "activity", "settings", "jays"] },
     },
     required: ["page"],
   },
   execute: async ({ args }) => {
     const map: Record<string, string> = {
-      home: "/d", log: "/d/entry", goals: "/d/goals", finances: "/d/finances",
-      content: "/d/content", calendar: "/d/calendar", timeline: "/d/timeline",
-      year: "/d/year", settings: "/d/settings", jays: "/d/jays",
+      home: "/d", entry: "/d/entry", log: "/d/entry", goals: "/d/goals",
+      finances: "/d/finances", content: "/d/content", calendar: "/d/calendar",
+      timeline: "/d/timeline", year: "/d/year", focus: "/d/time", time: "/d/time",
+      // The Alfred cockpit — autonomy, what I did + approvals, memory, identity, health.
+      alfred: "/d/alfred", activity: "/d/alfred", settings: "/d/settings", jays: "/d/jays",
     };
     const url = map[String(args.page)] ?? "/d";
     return { ok: true, url, hint: "client will navigate" };

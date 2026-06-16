@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/ToastProvider";
 import { config } from "@/config";
 import { useDemoMode } from "@/components/ui/DemoModeContext";
+import { DayPlanner } from "@/components/DayPlanner";
 import { DEMO_HOURS_WORKED, DEMO_DAILY_VIEWS, DEMO_SUMMARY, DEMO_MINDSET } from "@/lib/demoMode";
 import {
   Flame, Clock, Eye, Dumbbell, Check, Loader2, CloudUpload, BookOpen, Tag, X,
@@ -266,6 +267,11 @@ export default function EntryPage() {
           <div className="w-px bg-border-dim" />
           <StreakBadge label="NF"      count={streaks.nf} />
         </Card>
+      </div>
+
+      {/* Plan the day — today + tomorrow (moved here from Goals) */}
+      <div className="animate-fade-up stagger-2">
+        <DayPlanner />
       </div>
 
       {/* Habits */}

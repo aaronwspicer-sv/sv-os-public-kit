@@ -14,13 +14,9 @@ import { BriefingPreview } from "@/components/settings/BriefingPreview";
 import { ReconcileReminder } from "@/components/settings/ReconcileReminder";
 import { config } from "@/config";
 import { PublicProfileSettings } from "@/components/settings/PublicProfileSettings";
-import { SvGptEditor } from "@/components/settings/SvGptEditor";
-import { AlfredMemories } from "@/components/settings/AlfredMemories";
-import { AlfredKillSwitch } from "@/components/settings/AlfredKillSwitch";
-import { AlfredAutonomyToggle } from "@/components/settings/AlfredAutonomyToggle";
 import { WakeWordSetting } from "@/components/settings/WakeWordSetting";
 import { CalendarFeeds } from "@/components/settings/CalendarFeeds";
-import { Shield, Key, Lock, Bell, History, ChevronDown, ChevronUp, User, Fingerprint, Activity, ChevronRight, EyeOff, Compass } from "lucide-react";
+import { Shield, Key, Lock, Bell, History, ChevronDown, ChevronUp, User, Fingerprint, Activity, ChevronRight, EyeOff, Compass, Bot } from "lucide-react";
 import Link from "next/link";
 import { useDemoMode } from "@/components/ui/DemoModeContext";
 
@@ -365,24 +361,20 @@ export default function SettingsPage() {
         <ReconcileReminder />
       </div>
 
-      {/* SV-GPT skill editor — Alfred's identity */}
+      {/* Alfred moved to its own cockpit — leave a signpost here */}
       <div className="animate-fade-up stagger-6">
-        {isDemoMode ? <DemoHidden label="Alfred's identity (SV-GPT)" /> : <SvGptEditor />}
-      </div>
-
-      {/* Alfred kill switch — top of Alfred section so it's findable in emergencies */}
-      <div className="animate-fade-up stagger-6">
-        <AlfredKillSwitch />
-      </div>
-
-      {/* Autonomous Alfred opt-in */}
-      <div className="animate-fade-up stagger-6">
-        {isDemoMode ? <DemoHidden label="Autonomous Alfred" /> : <AlfredAutonomyToggle />}
-      </div>
-
-      {/* Alfred's long-term memory */}
-      <div className="animate-fade-up stagger-6">
-        {isDemoMode ? <DemoHidden label="Alfred's memories" /> : <AlfredMemories />}
+        <Link href="/d/alfred">
+          <Card interactive className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Bot size={18} className="text-accent" />
+              <div>
+                <p className="text-[14px] font-600">Alfred's cockpit</p>
+                <p className="text-[12px] text-text-3">Identity, memory, autonomy, kill switch, and activity all live here now.</p>
+              </div>
+            </div>
+            <ChevronRight size={16} className="text-text-3" />
+          </Card>
+        </Link>
       </div>
 
       {/* Wake word listener */}

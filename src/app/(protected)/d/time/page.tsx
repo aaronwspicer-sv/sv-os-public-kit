@@ -185,8 +185,9 @@ export default function TimePage() {
         <p className="text-text-3 text-[12px] uppercase tracking-[0.18em] mb-1">{today}</p>
         <h1 className="text-[26px] font-700 tracking-tight flex items-center gap-3">
           <Clock size={22} className="text-accent" />
-          Time Tracking
+          Focus
         </h1>
+        <p className="text-text-3 text-[12px] mt-1">Run a work session — it logs the time as hours worked.</p>
       </div>
 
       {/* Summary */}

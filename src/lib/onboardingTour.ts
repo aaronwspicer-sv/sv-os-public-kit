@@ -50,8 +50,9 @@ export const ROOM_STOPS: TourStop[] = [
     id: "entry",
     route: "/d/entry",
     title: "Daily Entry",
-    alfred: "Your daily check-in. Tick your habits, journal your day — a minute. I read every entry; it's how I actually get to know you.",
+    alfred: "Your day, in one place. Plan today and tomorrow, tick your habits, journal it — a minute. I read every entry; it's how I actually get to know you.",
     items: [
+      { name: "Plan today & tomorrow", desc: "what you're doing — add, check off, push the rest forward." },
       { name: "Habits", desc: "tick your four for the day." },
       { name: "Hours & Views", desc: "log how much you worked and how your content did." },
       { name: "Journal", desc: "a few lines on the day — I use these in your reviews." },
@@ -61,11 +62,10 @@ export const ROOM_STOPS: TourStop[] = [
     id: "goals",
     route: "/d/goals",
     title: "Goals",
-    alfred: "What you're chasing — today's, and the bigger stuff. Set them and I'll track them, bring them up in reviews, and nudge you when you drift.",
+    alfred: "The long game — your big targets, pulled from Notion. Set them and I'll track them, bring them up in reviews, and nudge you when you drift.",
     items: [
-      { name: "Today", desc: "your goals for the day." },
-      { name: "Queue", desc: "things lined up for later." },
-      { name: "Plan tomorrow", desc: "set tomorrow up before you sleep." },
+      { name: "Life goals", desc: "the targets that matter, with progress toward each." },
+      { name: "Day-to-day planning?", desc: "that lives on Daily Entry now." },
     ],
   },
   {
@@ -107,7 +107,7 @@ export const ROOM_STOPS: TourStop[] = [
 // Introduces the autonomous-action feed so new owners know where to watch me.
 export const ACTIVITY_STOP: TourStop = {
   id: "activity",
-  route: "/d/activity",
+  route: "/d/alfred",
   title: "What I did",
   alfred:
     "When I start doing things on my own, every move lands here — so you can see exactly what I did and undo any of it in a tap. I'm hands-off until you switch on autonomy in Settings.",

@@ -1,0 +1,209 @@
+"use client";
+// The today/tomorrow day-planner. Lives on Daily Entry (it's about *the day*).
+// Pulls daily todos from /api/todos; long-term goals live separately on /d/goals.
+import { useState, useEffect } from "react";
+import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { ProgressBar } from "@/components/ui/ProgressBar";
+import { Checkbox } from "@/components/ui/Checkbox";
+import { Plus, Trash2, Zap } from "lucide-react";
+import { getActiveDateString, getTomorrowDateString, formatDate } from "@/lib/utils";
+import { useDemoMode } from "@/components/ui/DemoModeContext";
+import { demoGoalText } from "@/lib/demoMode";
+
+interface DailyGoal { id: string; text: string; done: boolean; queued: boolean; date: string; }
+
+function Ticker({ goals }: { goals: DailyGoal[] }) {
+  const pending   = goals.filter(g => !g.done);
+  const doneCount = goals.filter(g => g.done).length;
+  return (
+    <div className="flex items-center gap-2 px-3 py-2 rounded-[10px] bg-[rgba(0,0,0,0.4)] border border-border-dim">
+      <span className="w-2 h-2 rounded-full bg-accent animate-led flex-shrink-0" />
+      <span className="text-[9px] font-800 uppercase tracking-[0.18em] text-text-3 flex-shrink-0">Today</span>
+      <div className="flex-1 overflow-hidden">
+        <p className="text-[12px] font-600 text-text-1 truncate">
+          {pending.length === 0
+            ? goals.length === 0 ? "Nothing planned yet — add one below" : "✓ All done — solid day"
+            : pending[0]?.text}
+        </p>
+      </div>
+      <span className="text-[11px] font-700 tabular-nums text-text-3 flex-shrink-0 font-mono">{doneCount}/{goals.length}</span>
+    </div>
+  );
+}
+
+export function DayPlanner() {
+  const { isDemoMode } = useDemoMode();
+  const todayStr      = getActiveDateString();
+  const tomorrowStr   = getTomorrowDateString();
+  const todayLabel    = formatDate(todayStr);
+  const tomorrowLabel = formatDate(tomorrowStr);
+
+  const [todayGoals, setTodayGoals]   = useState<DailyGoal[]>([]);
+  const [tomorrowGoals, setTomorrow]  = useState<DailyGoal[]>([]);
+  const [input, setInput]             = useState("");
+  const [tomorrowInput, setTomorrowInput] = useState("");
+  const [loadingTodos, setLoadingTodos]   = useState(true);
+  const [todosError, setTodosError]       = useState<string | null>(null);
+  const [addError, setAddError]           = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isDemoMode) {
+      setTodayGoals(Array.from({ length: 4 }, (_, i) => ({ id: `d${i}`, text: demoGoalText(i), done: i === 0, queued: false, date: todayStr })));
+      setTomorrow(Array.from({ length: 2 }, (_, i) => ({ id: `dm${i}`, text: demoGoalText(i + 4), done: false, queued: true, date: tomorrowStr })));
+      setLoadingTodos(false);
+      return;
+    }
+    fetch("/api/todos")
+      .then(async r => {
+        const data = await r.json();
+        if (!r.ok || data.error) { setTodosError(data.error ?? "Failed to load todos"); return; }
+        if (data.todayGoals)    setTodayGoals(data.todayGoals);
+        if (data.tomorrowGoals) setTomorrow(data.tomorrowGoals);
+      })
+      .catch(e => setTodosError(e?.message ?? "Network error"))
+      .finally(() => setLoadingTodos(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const doneCount = todayGoals.filter(g => g.done).length;
+  const allDone   = todayGoals.length > 0 && doneCount === todayGoals.length;
+
+  async function addGoal(date: string) {
+    const text = (date === todayStr ? input : tomorrowInput).trim();
+    if (!text) return;
+    setAddError(null);
+    try {
+      const res  = await fetch("/api/todos", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text, date }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) { setAddError(data.error ?? "Failed to save — table may not exist in Supabase"); return; }
+      if (data.todo) {
+        if (date === todayStr) { setTodayGoals(prev => [...prev, data.todo]); setInput(""); }
+        else                   { setTomorrow(prev => [...prev, data.todo]);   setTomorrowInput(""); }
+      }
+    } catch (e: any) {
+      setAddError(e?.message ?? "Network error");
+    }
+  }
+
+  async function toggleDone(id: string, current: boolean) {
+    setTodayGoals(prev => prev.map(g => g.id === id ? { ...g, done: !current } : g));
+    await fetch("/api/todos", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, done: !current }) });
+  }
+
+  async function toggleQueue(id: string, current: boolean) {
+    setTodayGoals(prev => prev.map(g => g.id === id ? { ...g, queued: !current } : g));
+    await fetch("/api/todos", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, queued: !current }) });
+  }
+
+  async function deleteGoal(id: string, date: string) {
+    if (date === todayStr) setTodayGoals(prev => prev.filter(g => g.id !== id));
+    else                   setTomorrow(prev => prev.filter(g => g.id !== id));
+    await fetch("/api/todos", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
+  }
+
+  async function pushRemaining() {
+    const unchecked = todayGoals.filter(g => !g.done);
+    const existingTexts = new Set(tomorrowGoals.map(g => g.text));
+    for (const g of unchecked) {
+      if (existingTexts.has(g.text)) continue;
+      const res  = await fetch("/api/todos", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: g.text, date: tomorrowStr }) });
+      const data = await res.json();
+      if (data.todo) setTomorrow(prev => [...prev, data.todo]);
+    }
+    for (const g of unchecked) await deleteGoal(g.id, todayStr);
+  }
+
+  return (
+    <div className="flex flex-col gap-6">
+      <Ticker goals={todayGoals} />
+
+      {(todosError || addError) && (
+        <div className="px-4 py-3 rounded-[12px] bg-[rgba(248,113,113,0.08)] border border-[rgba(248,113,113,0.2)]">
+          <p className="text-[11px] uppercase tracking-widest text-danger font-700 mb-1">Todos error</p>
+          <p className="text-[12px] text-danger break-all">{todosError ?? addError}</p>
+          <p className="text-[10px] text-text-3 mt-1">If this says &quot;relation does not exist&quot;, run setup.sql in Supabase.</p>
+        </div>
+      )}
+
+      {/* TODAY */}
+      <Card variant={allDone ? "success" : "default"} glow={allDone}>
+        <CardHeader>
+          <div>
+            <CardTitle>Today — {todayLabel}</CardTitle>
+            {allDone && <p className="text-[11px] text-success mt-0.5">All done — solid day</p>}
+          </div>
+          <div className="flex items-center gap-2">
+            {doneCount > 0 && <Badge variant="streak">🔥 {doneCount} done</Badge>}
+            <Badge variant="muted">{doneCount}/{todayGoals.length}</Badge>
+          </div>
+        </CardHeader>
+
+        {todayGoals.length > 0 && (
+          <ProgressBar value={(doneCount / todayGoals.length) * 100} segments={todayGoals.length} color={allDone ? "success" : "accent"} className="mb-4" />
+        )}
+
+        <div className="flex flex-col gap-2 mb-4">
+          {loadingTodos ? (
+            <p className="text-[12px] text-text-3 italic text-center py-4">Loading…</p>
+          ) : todayGoals.length === 0 ? (
+            <p className="text-[12px] text-text-3 italic text-center py-4">Nothing planned for today yet — add one below</p>
+          ) : todayGoals.map(goal => (
+            <div key={goal.id} className={`flex items-center gap-2 px-3 py-2.5 rounded-[10px] transition-all ${
+              goal.done   ? "opacity-45 bg-[rgba(52,211,153,0.04)]" :
+              goal.queued ? "bg-[rgba(29,155,240,0.08)] border-l-2 border-accent" :
+              "bg-[rgba(255,255,255,0.03)]"
+            }`}>
+              <Checkbox checked={goal.done} onChange={() => toggleDone(goal.id, goal.done)} />
+              <span className={`flex-1 text-[13px] ${goal.done ? "line-through text-text-3" : "text-text-1"}`}>
+                {isDemoMode ? demoGoalText(todayGoals.indexOf(goal)) : goal.text}
+              </span>
+              <button onClick={() => toggleQueue(goal.id, goal.queued)} title="Queue" className="text-text-3 hover:text-accent transition-colors p-1"><Zap size={13} /></button>
+              <button onClick={() => deleteGoal(goal.id, todayStr)} title="Delete" className="text-text-3 hover:text-danger transition-colors p-1"><Trash2 size={13} /></button>
+            </div>
+          ))}
+        </div>
+
+        {todayGoals.some(g => !g.done) && (
+          <button onClick={pushRemaining} className="w-full py-2 text-[12px] text-text-3 border border-dashed border-border-dim rounded-[10px] hover:border-accent hover:text-accent transition-all mb-3">
+            Push remaining to tomorrow
+          </button>
+        )}
+
+        <div className="flex gap-2">
+          <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addGoal(todayStr)} placeholder="Add something for today…" className="flex-1 px-3 py-2 text-[13px]" />
+          <Button variant="primary" size="sm" onClick={() => addGoal(todayStr)}><Plus size={14} /> Add</Button>
+        </div>
+      </Card>
+
+      {/* TOMORROW */}
+      <Card>
+        <CardHeader>
+          <div>
+            <CardTitle>Plan tomorrow — {tomorrowLabel}</CardTitle>
+            <p className="text-[11px] text-text-3 mt-0.5">Write tonight, locked until 6 AM.</p>
+          </div>
+          <Badge variant="muted">{tomorrowGoals.length} planned</Badge>
+        </CardHeader>
+        <div className="flex flex-col gap-2 mb-4">
+          {tomorrowGoals.length === 0 ? (
+            <p className="text-[12px] text-text-3 italic text-center py-3">Nothing planned for tomorrow yet</p>
+          ) : tomorrowGoals.map(goal => (
+            <div key={goal.id} className="flex items-center gap-2 px-3 py-2.5 rounded-[10px] bg-[rgba(255,255,255,0.03)]">
+              <Checkbox checked={false} onChange={() => {}} disabled label={isDemoMode ? demoGoalText(tomorrowGoals.indexOf(goal)) : goal.text} />
+              <button onClick={() => deleteGoal(goal.id, tomorrowStr)} className="ml-auto text-text-3 hover:text-danger transition-colors p-1"><Trash2 size={13} /></button>
+            </div>
+          ))}
+        </div>
+        <div className="flex gap-2">
+          <input value={tomorrowInput} onChange={(e) => setTomorrowInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addGoal(tomorrowStr)} placeholder="Plan something for tomorrow…" className="flex-1 px-3 py-2 text-[13px]" />
+          <Button variant="primary" size="sm" onClick={() => addGoal(tomorrowStr)}><Plus size={14} /> Add</Button>
+        </div>
+      </Card>
+    </div>
+  );
+}

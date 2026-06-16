@@ -1,7 +1,7 @@
 "use client";
 // Master opt-in for Autonomous Alfred. When ON, Alfred's scheduled passes
 // (morning/midday/evening) act on their own — green actions only, all logged to
-// /d/activity. When OFF (default), the passes do nothing. Separate from the
+// /d/alfred. When OFF (default), the passes do nothing. Separate from the
 // panic kill switch: this governs autonomy, that silences Alfred entirely.
 import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/Card";
@@ -56,7 +56,7 @@ export function AlfredAutonomyToggle() {
           </p>
           <p className="text-[11px] text-text-3 mt-2 flex items-center gap-1">
             <ShieldCheck size={12} className="text-success" />
-            Review everything at <Link href="/d/activity" className="text-accent underline">/d/activity</Link>
+            Review everything at <Link href="/d/alfred" className="text-accent underline">/d/alfred</Link>
           </p>
         </div>
       </div>
