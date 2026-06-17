@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
+import { StationHeader } from "@/components/ui/StationHeader";
 import { Badge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -132,11 +133,10 @@ export default function TimelinePage() {
   return (
     <div className="flex flex-col gap-5">
       {/* Header */}
-      <div className="animate-fade-up stagger-1 flex items-end justify-between gap-3 flex-wrap">
-        <div>
-          <p className="text-text-3 text-[11px] uppercase tracking-[0.18em] mb-1">Timeline</p>
-          <h1 className="text-[28px] font-700 tracking-tight tabular-nums">{year}</h1>
-        </div>
+      <StationHeader
+        station="TIMELINE"
+        title={<span className="tabular-nums">{year}</span>}
+        action={
         <div className="flex items-center gap-2 flex-wrap">
           <Link
             href="/d/year"
@@ -159,7 +159,8 @@ export default function TimelinePage() {
             ><ChevronRight size={14} /></button>
           </div>
         </div>
-      </div>
+        }
+      />
 
       {/* Feed / Map toggle */}
       <div className="animate-fade-up stagger-2 flex gap-1 p-1 bg-surface-2 rounded-[10px] self-start">

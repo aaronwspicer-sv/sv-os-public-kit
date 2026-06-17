@@ -8,6 +8,7 @@ import { useToast } from "@/components/ui/ToastProvider";
 import { config } from "@/config";
 import { useDemoMode } from "@/components/ui/DemoModeContext";
 import { DayPlanner } from "@/components/DayPlanner";
+import { StationHeader } from "@/components/ui/StationHeader";
 import { DEMO_HOURS_WORKED, DEMO_DAILY_VIEWS, DEMO_SUMMARY, DEMO_MINDSET } from "@/lib/demoMode";
 import {
   Flame, Clock, Eye, Dumbbell, Check, Loader2, CloudUpload, BookOpen, Tag, X,
@@ -241,20 +242,19 @@ export default function EntryPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Header */}
-      <div className="animate-fade-up stagger-1 flex items-end justify-between gap-3">
-        <div>
-          <p className="text-text-3 text-[11px] uppercase tracking-[0.18em] mb-1">Daily Entry</p>
-          <h1 className="text-[24px] font-700 tracking-tight">{today}</h1>
-          <DraftIndicator status={draftStatus} pushed={notionPushed} />
-        </div>
-        <a
-          href="/d/entry/history"
-          className="text-[12px] font-600 text-text-3 hover:text-accent transition-colors px-3 py-1.5 rounded-[10px] border border-border-dim hover:border-[rgba(29,155,240,0.3)]"
-        >
-          History →
-        </a>
-      </div>
+      <StationHeader
+        station="DAILY ENTRY"
+        title={today}
+        sub={<DraftIndicator status={draftStatus} pushed={notionPushed} />}
+        action={
+          <a
+            href="/d/entry/history"
+            className="text-[12px] font-600 text-text-3 hover:text-accent transition-colors px-3 py-1.5 rounded-[10px] border border-border-dim hover:border-[rgba(29,155,240,0.3)]"
+          >
+            History →
+          </a>
+        }
+      />
 
       {/* Streaks */}
       <div className="animate-fade-up stagger-2">

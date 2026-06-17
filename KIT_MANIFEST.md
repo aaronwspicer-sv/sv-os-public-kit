@@ -1,7 +1,7 @@
 # Spicer OS — kit build manifest
 
-Generated: 2026-06-17T02:22:16.445Z
-Files copied: ~302
+Generated: 2026-06-17T02:53:28.255Z
+Files copied: ~303
 
 ## Stripped (not shipped to buyers):
 - .git

@@ -1,5 +1,5 @@
 "use client";
-import { createContext, useContext, useEffect, useState, useCallback } from "react";
+import { createContext, useContext, useEffect } from "react";
 
 export type Theme = "dark" | "light" | "system";
 type ResolvedTheme = "dark" | "light";
@@ -10,7 +10,6 @@ interface ThemeContextValue {
   setTheme: (t: Theme) => void;
 }
 
-const STORAGE_KEY = "spicer_theme";
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 export function useTheme(): ThemeContextValue {
@@ -19,62 +18,16 @@ export function useTheme(): ThemeContextValue {
   return ctx;
 }
 
-function getSystemTheme(): ResolvedTheme {
-  if (typeof window === "undefined") return "dark";
-  return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
-}
-
-function applyTheme(resolved: ResolvedTheme) {
-  if (typeof document === "undefined") return;
-  document.documentElement.setAttribute("data-theme", resolved);
-}
-
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>("dark");
-  const [resolved, setResolved] = useState<ResolvedTheme>("dark");
-  const [hydrated, setHydrated] = useState(false);
-
-  // Initial load from localStorage
+  // Spicer OS is dark-first — it's a ship's bridge, not a daylight dashboard.
+  // Light mode is retired; the OS is always dark. The useTheme() API is kept
+  // (so existing consumers don't break) but always resolves to "dark".
   useEffect(() => {
-    let stored: Theme = "dark";
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw === "light" || raw === "dark" || raw === "system") stored = raw;
-    } catch {}
-    setThemeState(stored);
-    const r = stored === "system" ? getSystemTheme() : stored;
-    setResolved(r);
-    applyTheme(r);
-    setHydrated(true);
+    document.documentElement.setAttribute("data-theme", "dark");
   }, []);
-
-  // React to system preference changes (only when user picked "system")
-  useEffect(() => {
-    if (theme !== "system") return;
-    const mq = window.matchMedia("(prefers-color-scheme: light)");
-    const onChange = () => {
-      const r = mq.matches ? "light" : "dark";
-      setResolved(r);
-      applyTheme(r);
-    };
-    mq.addEventListener("change", onChange);
-    return () => mq.removeEventListener("change", onChange);
-  }, [theme]);
-
-  const setTheme = useCallback((t: Theme) => {
-    setThemeState(t);
-    try { localStorage.setItem(STORAGE_KEY, t); } catch {}
-    const r = t === "system" ? getSystemTheme() : t;
-    setResolved(r);
-    applyTheme(r);
-  }, []);
-
-  // Render children immediately to avoid hydration mismatch — the data-theme
-  // attribute is set as soon as effects run (very fast, no flash worth blocking on)
-  void hydrated;
 
   return (
-    <ThemeContext.Provider value={{ theme, resolved, setTheme }}>
+    <ThemeContext.Provider value={{ theme: "dark", resolved: "dark", setTheme: () => {} }}>
       {children}
     </ThemeContext.Provider>
   );

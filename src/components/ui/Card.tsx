@@ -11,6 +11,8 @@ export function Card({ className, glow, variant = "default", interactive, childr
     <div
       className={cn(
         "glass p-5 transition-all duration-300 ease-[var(--ease-glide)]",
+        // Instrument-panel trim on plain cards — ties them to the bridge.
+        variant === "default" && "console-panel",
         interactive && "hover:scale-[1.005] hover:border-[rgba(29,155,240,0.28)] hover:shadow-[0_0_24px_rgba(29,155,240,0.12)] cursor-pointer",
         glow && "shadow-[0_0_28px_rgba(29,155,240,0.18)]",
         variant === "success"   && "border-[rgba(52,211,153,0.22)] bg-[rgba(52,211,153,0.04)]",

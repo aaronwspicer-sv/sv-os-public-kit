@@ -11,6 +11,7 @@ import { AlfredKillSwitch } from "@/components/settings/AlfredKillSwitch";
 import { AlfredMemories } from "@/components/settings/AlfredMemories";
 import { SvGptEditor } from "@/components/settings/SvGptEditor";
 import { AlfredActivityFeed } from "@/components/alfred/AlfredActivityFeed";
+import { StationHeader } from "@/components/ui/StationHeader";
 import { useDemoMode } from "@/components/ui/DemoModeContext";
 
 function Section({ icon: Icon, title, children, defaultOpen = true }: {
@@ -35,14 +36,11 @@ export default function AlfredCockpitPage() {
 
   return (
     <div className="space-y-7">
-      <div>
-        <h1 className="text-xl font-700 flex items-center gap-2">
-          <Bot size={18} className="text-accent" /> Alfred
-        </h1>
-        <p className="text-text-3 text-[13px] mt-1">
-          Your AI's cockpit — what he does on his own, what he knows, and the switches that govern him.
-        </p>
-      </div>
+      <StationHeader
+        station="ALFRED"
+        title="Alfred"
+        sub="Your AI's cockpit — what he does on his own, what he knows, and the switches that govern him."
+      />
 
       <Section icon={Sparkles} title="Controls">
         <div className="space-y-3">

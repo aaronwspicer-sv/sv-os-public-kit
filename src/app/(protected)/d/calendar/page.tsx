@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { Calendar, LayoutGrid, List, CheckSquare, Video, BookOpen, ChevronRight, Maximize2, Minimize2, Sparkles } from "lucide-react";
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
+import { StationHeader } from "@/components/ui/StationHeader";
 import { Badge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -109,31 +110,29 @@ export default function CalendarPage() {
   return (
     <div className="flex flex-col gap-5">
       {/* Header */}
-      <div className="animate-fade-up stagger-1 flex items-end justify-between gap-3 flex-wrap">
-        <div>
-          <p className="text-text-3 text-[11px] uppercase tracking-[0.18em] mb-1">Calendar</p>
-          <h1 className="text-[24px] font-700 tracking-tight">Schedule</h1>
-        </div>
-
-        {/* View toggle (only relevant when iframe is visible) */}
-        <div className="flex gap-1 p-1 bg-surface-2 rounded-[10px]">
-          {VIEWS.map(v => {
-            const Icon = v.icon;
-            return (
-              <button
-                key={v.key}
-                onClick={() => setMode(v.key)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] text-[11px] font-600 transition-all ${
-                  mode === v.key ? "bg-accent-dim text-accent" : "text-text-3 hover:text-text-2"
-                }`}
-              >
-                <Icon size={12} />
-                <span className="hidden sm:inline">{v.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      <StationHeader
+        station="CALENDAR"
+        title="Schedule"
+        action={
+          <div className="flex gap-1 p-1 bg-surface-2 rounded-[10px]">
+            {VIEWS.map(v => {
+              const Icon = v.icon;
+              return (
+                <button
+                  key={v.key}
+                  onClick={() => setMode(v.key)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] text-[11px] font-600 transition-all ${
+                    mode === v.key ? "bg-accent-dim text-accent" : "text-text-3 hover:text-text-2"
+                  }`}
+                >
+                  <Icon size={12} />
+                  <span className="hidden sm:inline">{v.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        }
+      />
 
       {/* Agenda strip (hidden when iframe is expanded) */}
       {!iframeExpanded && (

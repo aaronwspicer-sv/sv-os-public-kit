@@ -5,6 +5,7 @@ import { FinanceVaultGate } from "@/components/security/FinanceVaultGate";
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { StationHeader } from "@/components/ui/StationHeader";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { formatMoney } from "@/lib/money";
 import { useDemoMode } from "@/components/ui/DemoModeContext";
@@ -896,20 +897,19 @@ export default function FinancesPage() {
         </div>
       ) : (<>
 
-      {/* Header */}
-      <div className="animate-fade-up stagger-1 flex items-end justify-between">
-        <div>
-          <p className="text-text-3 text-[11px] uppercase tracking-[0.18em] mb-1">Finances</p>
-          <h1 className="text-[28px] md:text-[32px] font-700 tracking-tight tabular-nums">{fmt(netWorth)}</h1>
-          <p className="text-[11px] text-text-3 mt-0.5">Net worth · {notionAccounts.length} accounts</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => fetchAll()} loading={syncing}><RefreshCw size={13} /> Sync</Button>
-          <Button variant="outline" size="sm" onClick={() => setConfirmDisconnect(true)}>
-            <Unlink size={13} className="text-danger" />
-          </Button>
-        </div>
-      </div>
+      <StationHeader
+        station="FINANCE"
+        title={<span className="tabular-nums">{fmt(netWorth)}</span>}
+        sub={`Net worth · ${notionAccounts.length} accounts`}
+        action={
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => fetchAll()} loading={syncing}><RefreshCw size={13} /> Sync</Button>
+            <Button variant="outline" size="sm" onClick={() => setConfirmDisconnect(true)}>
+              <Unlink size={13} className="text-danger" />
+            </Button>
+          </div>
+        }
+      />
 
       {/* Disconnect modal */}
       {confirmDisconnect && (

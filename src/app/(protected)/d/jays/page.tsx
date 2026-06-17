@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
+import { StationHeader } from "@/components/ui/StationHeader";
 import { Badge } from "@/components/ui/Badge";
 import { Skeleton, SkeletonRows } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -56,22 +57,19 @@ export default function JaysPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="animate-fade-up stagger-1 flex items-end justify-between gap-3 flex-wrap">
-        <div>
-          <p className="text-text-3 text-[11px] uppercase tracking-[0.18em] mb-1 flex items-center gap-2">
-            <span className="inline-block w-2 h-2 rounded-full" style={{ background: JAYS_BLUE }} />
-            Toronto Blue Jays
-          </p>
-          <h1 className="text-[24px] font-700 tracking-tight">Game Day</h1>
-        </div>
-        <button
-          onClick={load}
-          disabled={refreshing}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] border border-border-dim text-[11px] font-600 text-text-2 hover:border-accent hover:text-accent transition-all disabled:opacity-50"
-        >
-          <RefreshCw size={12} className={refreshing ? "animate-spin" : ""} /> Refresh
-        </button>
-      </div>
+      <StationHeader
+        station="TORONTO BLUE JAYS"
+        title="Game Day"
+        action={
+          <button
+            onClick={load}
+            disabled={refreshing}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] border border-border-dim text-[11px] font-600 text-text-2 hover:border-accent hover:text-accent transition-all disabled:opacity-50"
+          >
+            <RefreshCw size={12} className={refreshing ? "animate-spin" : ""} /> Refresh
+          </button>
+        }
+      />
 
       {loading ? (
         <Card><SkeletonRows count={5} /></Card>

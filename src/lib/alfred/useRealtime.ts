@@ -39,6 +39,9 @@ export interface UseRealtimeApi {
   connect: (voice?: string) => Promise<void>;
   disconnect: () => void;
   toggleMute: () => void;
+  /** Inject a typed message into the live session so voice + text stay one
+   *  conversation. Returns false if the session isn't connected. */
+  sendText: (text: string) => boolean;
 }
 
 export function useRealtime(opts: UseRealtimeOpts = {}): UseRealtimeApi {
@@ -375,8 +378,22 @@ export function useRealtime(opts: UseRealtimeOpts = {}): UseRealtimeApi {
     });
   }, []);
 
+  // Inject a typed message into the live session so a typed turn is part of the
+  // SAME conversation as the spoken ones — Alfred answers it by voice + text.
+  const sendText = useCallback((text: string): boolean => {
+    const dc = dcRef.current;
+    const t = text.trim();
+    if (!dc || dc.readyState !== "open" || !t) return false;
+    dc.send(JSON.stringify({
+      type: "conversation.item.create",
+      item: { type: "message", role: "user", content: [{ type: "input_text", text: t }] },
+    }));
+    dc.send(JSON.stringify({ type: "response.create" }));
+    return true;
+  }, []);
+
   // Auto-cleanup on unmount
   useEffect(() => () => teardown(), [teardown]);
 
-  return { phase, error, muted, audioLevel, partialUser, partialAlfred, toolsAttached, attempt, connect, disconnect, toggleMute };
+  return { phase, error, muted, audioLevel, partialUser, partialAlfred, toolsAttached, attempt, connect, disconnect, toggleMute, sendText };
 }

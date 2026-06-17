@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { StationHeader } from "@/components/ui/StationHeader";
 import { useToast } from "@/components/ui/ToastProvider";
 import { useDemoMode } from "@/components/ui/DemoModeContext";
 import { config } from "@/config";
@@ -181,14 +182,11 @@ export default function TimePage() {
   return (
     <div className="flex flex-col gap-5">
       {/* Header */}
-      <div className="animate-fade-up stagger-1">
-        <p className="text-text-3 text-[12px] uppercase tracking-[0.18em] mb-1">{today}</p>
-        <h1 className="text-[26px] font-700 tracking-tight flex items-center gap-3">
-          <Clock size={22} className="text-accent" />
-          Focus
-        </h1>
-        <p className="text-text-3 text-[12px] mt-1">Run a work session — it logs the time as hours worked.</p>
-      </div>
+      <StationHeader
+        station="FOCUS"
+        title="Focus"
+        sub="Run a work session — it logs the time as hours worked."
+      />
 
       {/* Summary */}
       <div className="grid grid-cols-3 gap-3 animate-fade-up stagger-2">

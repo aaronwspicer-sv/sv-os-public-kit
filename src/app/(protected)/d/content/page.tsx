@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { StationHeader } from "@/components/ui/StationHeader";
 import { Skeleton, SkeletonRows } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { useToast } from "@/components/ui/ToastProvider";
@@ -173,16 +174,15 @@ export default function ContentPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      {/* Header */}
-      <div className="animate-fade-up stagger-1 flex items-end justify-between gap-3 flex-wrap">
-        <div>
-          <p className="text-text-3 text-[11px] uppercase tracking-[0.18em] mb-1">Content Pipeline</p>
-          <h1 className="text-[24px] font-700 tracking-tight">SV Videos</h1>
-        </div>
-        <Button variant="primary" size="sm" onClick={() => setCaptureOpen(true)}>
-          <Plus size={14} /> New Idea
-        </Button>
-      </div>
+      <StationHeader
+        station="CONTENT PIPELINE"
+        title="SV Videos"
+        action={
+          <Button variant="primary" size="sm" onClick={() => setCaptureOpen(true)}>
+            <Plus size={14} /> New Idea
+          </Button>
+        }
+      />
 
       {/* Quick-capture modal */}
       {captureOpen && (

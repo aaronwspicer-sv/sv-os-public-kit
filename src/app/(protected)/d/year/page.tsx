@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useState, useMemo } from "react";
 import { useDemoMode } from "@/components/ui/DemoModeContext";
+import { StationHeader } from "@/components/ui/StationHeader";
 import {
   DEMO_YEAR_INCOME, DEMO_YEAR_EXPENSE, DEMO_YEAR_NET,
   DEMO_TOTAL_VIEWS, DEMO_TOP_CATEGORIES, DEMO_MONTHLY,
@@ -107,11 +108,10 @@ export default function YearPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="animate-fade-up stagger-1 flex items-end justify-between gap-3 flex-wrap">
-        <div>
-          <p className="text-text-3 text-[11px] uppercase tracking-[0.18em] mb-1">Year in Review</p>
-          <h1 className="text-[28px] font-700 tracking-tight tabular-nums">{year}</h1>
-        </div>
+      <StationHeader
+        station="YEAR IN REVIEW"
+        title={<span className="tabular-nums">{year}</span>}
+        action={
         <div className="flex items-center gap-2">
           <button
             onClick={() => setCompare(c => !c)}
@@ -137,7 +137,8 @@ export default function YearPage() {
             aria-label="Next year"
           ><ChevronRight size={14} /></button>
         </div>
-      </div>
+        }
+      />
 
       {compare && (
         <div className="px-4 py-2.5 rounded-[10px] bg-[rgba(29,155,240,0.07)] border border-[rgba(29,155,240,0.2)] flex items-center gap-2 text-[11px]">

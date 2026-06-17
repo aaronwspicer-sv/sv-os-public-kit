@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { ProgressBar } from "@/components/ui/ProgressBar";
+import { StationHeader } from "@/components/ui/StationHeader";
 import { formatDate } from "@/lib/utils";
 import { ArrowRight } from "lucide-react";
 import { useDemoMode } from "@/components/ui/DemoModeContext";
@@ -63,13 +64,12 @@ export default function GoalsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="animate-fade-up stagger-1">
-        <p className="text-text-3 text-[11px] uppercase tracking-[0.18em] mb-1">Goals</p>
-        <h1 className="text-[24px] font-700 tracking-tight">Life Goals</h1>
-        <p className="text-text-3 text-[13px] mt-1">The long game, pulled from Notion. Planning today &amp; tomorrow lives on{" "}
-          <Link href="/d/entry" className="text-accent underline">Daily Entry</Link>.
-        </p>
-      </div>
+      <StationHeader
+        station="GOALS"
+        title="Life Goals"
+        sub={<>The long game, pulled from Notion. Planning today &amp; tomorrow lives on{" "}
+          <Link href="/d/entry" className="text-accent underline">Daily Entry</Link>.</>}
+      />
 
       <div className="animate-fade-up stagger-2 flex flex-col gap-3">
         {loadingGoals ? (

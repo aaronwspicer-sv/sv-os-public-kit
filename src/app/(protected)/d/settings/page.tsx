@@ -1,13 +1,13 @@
 "use client";
 import { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
+import { StationHeader } from "@/components/ui/StationHeader";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { TotpSetup } from "@/components/security/TotpSetup";
 import { PasskeySetup } from "@/components/security/PasskeySetup";
 import { PushSetup } from "@/components/security/PushSetup";
 import { SecurityPanel } from "@/components/security/SecurityPanel";
-import { ThemeToggle } from "@/components/settings/ThemeToggle";
 import { IdleLockSetting } from "@/components/settings/IdleLockSetting";
 import { SessionsPanel } from "@/components/settings/SessionsPanel";
 import { BriefingPreview } from "@/components/settings/BriefingPreview";
@@ -78,10 +78,7 @@ export default function SettingsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="animate-fade-up stagger-1">
-        <p className="text-text-3 text-[11px] uppercase tracking-[0.18em] mb-1">Settings</p>
-        <h1 className="text-[24px] font-700 tracking-tight">Security &amp; Appearance</h1>
-      </div>
+      <StationHeader station="SETTINGS" title="Security & preferences" />
 
       {/* OS Health — quick link to /d/settings/health */}
       <Link href="/d/settings/health" className="animate-fade-up stagger-2 block">
@@ -114,11 +111,6 @@ export default function SettingsPage() {
             <ChevronRight size={16} className="text-text-3" />
           </Card>
         </button>
-      </div>
-
-      {/* Theme */}
-      <div className="animate-fade-up stagger-2">
-        <ThemeToggle />
       </div>
 
       {/* Idle auto-lock */}

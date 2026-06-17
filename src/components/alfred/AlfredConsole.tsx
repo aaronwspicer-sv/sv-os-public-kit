@@ -770,45 +770,66 @@ export function AlfredConsole() {
     const text = input.trim();
     if (!text || busy) return;
     setInput("");
+    setChatOpen(true);
+    // Voice is live → feed the SAME session so spoken + typed are one conversation
+    // (Alfred answers it by voice; the turn echoes into the chat via listeners).
+    if (voiceLive && realtime.sendText(text)) {
+      setMsgs(p => [...p, { role: "user", content: text }, { role: "assistant", content: "", streaming: true }]);
+      chatHistory.current.push({ role: "user", content: text });
+      return;
+    }
     setBusy(true);
     const userMsg: Msg = { role: "user", content: text };
     const placeholder: Msg = { role: "assistant", content: "", streaming: true };
     setMsgs(p => [...p, userMsg, placeholder]);
     chatHistory.current.push({ role: "user", content: text });
-    await chatWith(
-      text,
-      chatHistory.current.slice(-12),
-      chunk => setMsgs(p => { const copy = [...p]; const last = copy[copy.length - 1]; if (last?.role === "assistant") copy[copy.length - 1] = { ...last, content: last.content + chunk, streaming: true }; return copy; }),
-      url => navigateTo(url),
-      full => {
-        setMsgs(p => { const copy = [...p]; const last = copy[copy.length - 1]; if (last?.role === "assistant") copy[copy.length - 1] = { role: "assistant", content: full }; return copy; });
-        chatHistory.current.push({ role: "assistant", content: full });
-        setBusy(false);
-      },
-    );
-    setBusy(false);
-  }, [input, busy, chatWith, navigateTo]);
+    try {
+      await chatWith(
+        text,
+        chatHistory.current.slice(-12),
+        chunk => setMsgs(p => { const copy = [...p]; const last = copy[copy.length - 1]; if (last?.role === "assistant") copy[copy.length - 1] = { ...last, content: last.content + chunk, streaming: true }; return copy; }),
+        url => navigateTo(url),
+        full => {
+          setMsgs(p => { const copy = [...p]; const last = copy[copy.length - 1]; if (last?.role === "assistant") copy[copy.length - 1] = { role: "assistant", content: full }; return copy; });
+          chatHistory.current.push({ role: "assistant", content: full });
+        },
+      );
+    } catch {
+      setMsgs(p => { const copy = [...p]; const last = copy[copy.length - 1]; if (last?.role === "assistant" && last.streaming) copy[copy.length - 1] = { role: "assistant", content: "Hmm — I couldn't reach my brain just then. Try that again." }; return copy; });
+    } finally {
+      setBusy(false);
+    }
+  }, [input, busy, chatWith, navigateTo, voiceLive, realtime]);
 
   // Send a message directly (used by brain node clicks)
   const sendDirect = useCallback(async (text: string) => {
     if (busy) return;
     setChatOpen(true);
+    if (voiceLive && realtime.sendText(text)) {
+      setMsgs(p => [...p, { role: "user", content: text }, { role: "assistant", content: "", streaming: true }]);
+      chatHistory.current.push({ role: "user", content: text });
+      return;
+    }
     setBusy(true);
     setMsgs(p => [...p, { role: "user", content: text }, { role: "assistant", content: "", streaming: true }]);
     chatHistory.current.push({ role: "user", content: text });
-    await chatWith(
-      text,
-      chatHistory.current.slice(-12),
-      chunk => setMsgs(p => { const copy = [...p]; const last = copy[copy.length - 1]; if (last?.role === "assistant") copy[copy.length - 1] = { ...last, content: last.content + chunk, streaming: true }; return copy; }),
-      url => navigateTo(url),
-      full => {
-        setMsgs(p => { const copy = [...p]; const last = copy[copy.length - 1]; if (last?.role === "assistant") copy[copy.length - 1] = { role: "assistant", content: full }; return copy; });
-        chatHistory.current.push({ role: "assistant", content: full });
-        setBusy(false);
-      },
-    );
-    setBusy(false);
-  }, [busy, chatWith, navigateTo]);
+    try {
+      await chatWith(
+        text,
+        chatHistory.current.slice(-12),
+        chunk => setMsgs(p => { const copy = [...p]; const last = copy[copy.length - 1]; if (last?.role === "assistant") copy[copy.length - 1] = { ...last, content: last.content + chunk, streaming: true }; return copy; }),
+        url => navigateTo(url),
+        full => {
+          setMsgs(p => { const copy = [...p]; const last = copy[copy.length - 1]; if (last?.role === "assistant") copy[copy.length - 1] = { role: "assistant", content: full }; return copy; });
+          chatHistory.current.push({ role: "assistant", content: full });
+        },
+      );
+    } catch {
+      setMsgs(p => { const copy = [...p]; const last = copy[copy.length - 1]; if (last?.role === "assistant" && last.streaming) copy[copy.length - 1] = { role: "assistant", content: "Hmm — I couldn't reach my brain just then. Try that again." }; return copy; });
+    } finally {
+      setBusy(false);
+    }
+  }, [busy, chatWith, navigateTo, voiceLive, realtime]);
 
   // Voice toggle
   const toggleVoice = useCallback(async () => {
@@ -1081,7 +1102,7 @@ export function AlfredConsole() {
       </div>
 
       {/* ── Center (orbital) ────────────────────────────── */}
-      <div className="flex-1 flex flex-col items-center justify-center relative z-10 min-w-0 py-4">
+      <div className="flex-1 flex flex-col relative z-10 min-w-0 py-4">
         {/* Perspective floor grid — the "looking out of the ship" depth cue */}
         <svg aria-hidden viewBox="0 0 320 200" preserveAspectRatio="xMidYMax slice"
           className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 w-full" style={{ zIndex: 0, opacity: 0.55 }}>
@@ -1092,6 +1113,10 @@ export function AlfredConsole() {
             <line key={`h${i}`} x1={160-(y*1.05)} y1={y} x2={160+(y*1.05)} y2={y} stroke="rgba(62,176,255,0.12)" strokeWidth="1" />
           ))}
         </svg>
+
+        {/* Viewscreen — owns the vertical centre so the orb is ALWAYS centred,
+            regardless of whether the chat panel is open. */}
+        <div className="flex-1 min-h-0 flex flex-col items-center justify-center w-full">
 
         {/* Bridge status strip */}
         <div className="relative z-10 flex items-center gap-2.5 mb-4 text-[9px] font-mono tracking-[0.22em]">
@@ -1130,6 +1155,10 @@ export function AlfredConsole() {
             />
           )}
         </div>
+        </div>{/* /viewscreen */}
+
+        {/* Bottom command console — anchored so it never shifts the orb */}
+        <div className="relative z-10 flex-shrink-0 flex flex-col items-center w-full">
 
         {/* Omni command-line — type a command or ask Alfred (door #3) */}
         <div className="relative z-10 w-full max-w-[440px] mt-5 px-4">
@@ -1198,6 +1227,7 @@ export function AlfredConsole() {
             );
           })}
         </div>
+        </div>{/* /bottom console */}
       </div>
 
       {/* ── Right (chat) — slides in when Alfred responds ── */}

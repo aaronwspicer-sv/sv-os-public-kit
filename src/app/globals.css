@@ -396,6 +396,31 @@ html[data-theme="light"] .surface-solid {
   100%     { opacity: 0; transform: translateY(-4px); }
 }
 
+/* ── Ship "station" trim — the shared command-deck language across rooms ── */
+.telemetry {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-text-3);
+}
+/* Console-panel: add to a glass card to make it read like an instrument —
+   a thin blue top-edge + a corner tick. Subtle; keeps the content readable. */
+.console-panel {
+  position: relative;
+  border-top: 1px solid rgba(29, 155, 240, 0.22);
+}
+.console-panel::before {
+  content: "";
+  position: absolute;
+  top: 7px; left: 7px;
+  width: 9px; height: 9px;
+  border-top: 1.5px solid rgba(29, 155, 240, 0.55);
+  border-left: 1.5px solid rgba(29, 155, 240, 0.55);
+  pointer-events: none;
+}
+
 .animate-fade-up { animation: fade-up 0.4s var(--ease-glide) both; }
 .animate-fade-in { animation: fade-in 0.3s var(--ease-glide) both; }
 .animate-led     { animation: led-pulse 1.6s ease-in-out infinite; }
