@@ -14,8 +14,11 @@ self-host kit: bring your own keys, run your own copy, own your data.
 
 ## What's inside
 
-- **Alfred** — an AI agent with 42 tools across the whole OS. Chat + voice +
+- **Alfred** — an AI agent with 43 tools across the whole OS. Chat + voice +
   vision, long-term vector memory, prompt-injection defenses, a kill switch.
+- **One command center** — your home is the bridge: ask Alfred, hit `⌘K`, or tap
+  a quick-action — three doors to the same command set. Sync your views, capture
+  an idea, or jump anywhere, from one place.
 - **Autonomous Alfred** *(opt-in, off by default)* — Alfred runs daily passes
   that quietly reshuffle your day, note patterns, and draft content from what
   you build. Tiered + reversible: small internal actions run free, anything

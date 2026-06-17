@@ -84,7 +84,7 @@ function PlatformIcon({ p }: { p: string }) {
 export default function ContentPage() {
   const toast = useToast();
   const [videos, setVideos] = useState<Video[] | null>(null);
-  const [tab, setTab]       = useState<"overview"|"pipeline"|"inbox"|"calendar"|"performance"|"command">("overview");
+  const [tab, setTab]       = useState<"overview"|"pipeline"|"inbox"|"calendar"|"performance"|"channel">("overview");
   const [filterPillar, setFilterPillar] = useState<Pillar | "All">("All");
   const [filterType, setFilterType]     = useState<"All" | "Long Form" | "Short">("All");
 
@@ -168,7 +168,7 @@ export default function ContentPage() {
     { key: "inbox",       label: "Inbox",       icon: Inbox },
     { key: "calendar",    label: "Calendar",    icon: CalendarIcon },
     { key: "performance", label: "Performance", icon: BarChart3 },
-    { key: "command",     label: "Command",     icon: Zap },
+    { key: "channel",     label: "Channel",     icon: Zap },
   ] as const;
 
   return (
@@ -272,7 +272,7 @@ export default function ContentPage() {
       {tab === "inbox" && <InboxTab onPromoted={() => load()} />}
 
       {/* ── COMMAND ── */}
-      {tab === "command" && <CommandTab videos={videos} onSynced={load} />}
+      {tab === "channel" && <CommandTab videos={videos} onSynced={load} />}
     </div>
   );
 }

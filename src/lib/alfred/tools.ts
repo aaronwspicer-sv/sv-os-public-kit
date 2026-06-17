@@ -1463,6 +1463,19 @@ const forget_person: ToolDef = {
   },
 };
 
+// Sync YouTube view counts into the content pipeline. Mirrors the "Sync YouTube
+// views" command so talking to Alfred matches Cmd+K / the bridge.
+const sync_youtube_views: ToolDef = {
+  name: "sync_youtube_views",
+  description: "Pull the latest YouTube view counts for Live videos into the content pipeline (Notion). Use when the owner says 'sync my views', 'update my view counts', etc.",
+  sensitivity: "write",
+  parameters: { type: "object", properties: {}, required: [] },
+  execute: async () => {
+    const { syncYoutubeViews } = await import("@/lib/syncViews");
+    return await syncYoutubeViews();
+  },
+};
+
 // ── OUTBOUND (red) — Phase 4. Never runs autonomously (executeTool blocks
 //    origin 'autonomous' for red/outbound). Only the approval route executes it,
 //    with origin 'exec', after the owner approves. Egress-scanned here too. ──
@@ -1553,6 +1566,8 @@ export const TOOLS: ToolDef[] = [
   youtube_channel_lookup,
   web_search,
   fetch_url,
+  // Content ops (shared with the command registry)
+  sync_youtube_views,
   // Outbound (red — human-gated)
   publish_update,
 ];

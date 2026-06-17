@@ -887,6 +887,14 @@ export function AlfredConsole() {
       style={{ minHeight: "100svh", background: "#020509" }}
     >
 
+      {/* ── Bridge HUD frame — corner brackets make it a viewport ── */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 z-20">
+        <span className="absolute top-2.5 left-2.5 w-4 h-4" style={{ borderTop: "2px solid rgba(62,176,255,0.5)", borderLeft: "2px solid rgba(62,176,255,0.5)" }} />
+        <span className="absolute top-2.5 right-2.5 w-4 h-4" style={{ borderTop: "2px solid rgba(62,176,255,0.5)", borderRight: "2px solid rgba(62,176,255,0.5)" }} />
+        <span className="absolute bottom-2.5 left-2.5 w-4 h-4" style={{ borderBottom: "2px solid rgba(62,176,255,0.5)", borderLeft: "2px solid rgba(62,176,255,0.5)" }} />
+        <span className="absolute bottom-2.5 right-2.5 w-4 h-4" style={{ borderBottom: "2px solid rgba(62,176,255,0.5)", borderRight: "2px solid rgba(62,176,255,0.5)" }} />
+      </div>
+
       {/* ── Left sidebar (data panels) ──────────────────── */}
       <div className="hidden lg:flex flex-col w-[240px] flex-shrink-0 relative z-10 overflow-y-auto"
         style={{ borderRight: "1px solid rgba(255,255,255,0.09)" }}>
@@ -900,6 +908,21 @@ export function AlfredConsole() {
         </div>
 
         <div className="flex flex-col gap-3 p-3">
+          {/* Needs you — flashing ship-alert console (urgent items only) */}
+          {d.inbox && d.inbox.length > 0 && (
+            <button
+              onClick={() => navigateTo("/d/finances")}
+              className="text-left rounded-[9px] p-2.5 border w-full"
+              style={{ animation: "alert-flash 1.1s ease-in-out infinite" }}
+            >
+              <div className="flex items-center gap-1.5 mb-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-danger flex-shrink-0" style={{ animation: "alfred-pulse 1s ease-in-out infinite" }} />
+                <span className="text-[10px] font-mono tracking-[0.18em] text-danger">NEEDS YOU</span>
+              </div>
+              <p className="text-[11px] font-mono text-text-2">{d.inbox.length} tx to review →</p>
+            </button>
+          )}
+
           {/* Tasks */}
           <Panel label="TASKS" delay={0}>
             {d.todos === null ? <Dim /> : d.todos.length === 0
@@ -1059,14 +1082,31 @@ export function AlfredConsole() {
 
       {/* ── Center (orbital) ────────────────────────────── */}
       <div className="flex-1 flex flex-col items-center justify-center relative z-10 min-w-0 py-4">
-        {/* Date + time */}
-        <div className="flex items-center gap-3 mb-4">
-          <span className="text-[9px] font-mono tracking-[0.3em] text-text-3">{dateStr}</span>
-          <span className="w-px h-3 bg-[rgba(255,255,255,0.08)]" />
-          <span className="text-[11px] font-mono tabular-nums text-text-2">{time}</span>
+        {/* Perspective floor grid — the "looking out of the ship" depth cue */}
+        <svg aria-hidden viewBox="0 0 320 200" preserveAspectRatio="xMidYMax slice"
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 w-full" style={{ zIndex: 0, opacity: 0.55 }}>
+          {[-160,-90,-40,0,40,90,160].map((dx,i) => (
+            <line key={i} x1="160" y1="0" x2={160+dx*2.4} y2="200" stroke="rgba(62,176,255,0.16)" strokeWidth="1" />
+          ))}
+          {[0,42,90,144,200].map((y,i) => (
+            <line key={`h${i}`} x1={160-(y*1.05)} y1={y} x2={160+(y*1.05)} y2={y} stroke="rgba(62,176,255,0.12)" strokeWidth="1" />
+          ))}
+        </svg>
+
+        {/* Bridge status strip */}
+        <div className="relative z-10 flex items-center gap-2.5 mb-4 text-[9px] font-mono tracking-[0.22em]">
+          <span className="text-accent">{config.brand.shortName.toUpperCase()}</span>
+          <span className="flex items-center gap-1 text-success"><span className="w-1.5 h-1.5 rounded-full bg-success" style={{ boxShadow: "0 0 6px rgba(52,211,153,0.6)" }} />NOMINAL</span>
+          <span className="text-text-3">{dateStr}</span>
+          <span className="text-text-2 tabular-nums tracking-normal">{time}</span>
+          {d.inbox && d.inbox.length > 0 && (
+            <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-danger" style={{ background: "rgba(248,113,113,0.1)", border: "1px solid rgba(248,113,113,0.3)" }}>
+              <span className="w-1 h-1 rounded-full bg-danger" style={{ animation: "alfred-pulse 1s ease-in-out infinite" }} />{d.inbox.length} NEED YOU
+            </span>
+          )}
         </div>
 
-        <div className="w-full max-w-[400px] lg:max-w-[480px] aspect-square">
+        <div className="relative z-10 w-full max-w-[400px] lg:max-w-[480px] aspect-square">
           {brainNodes !== null && brainNodes.length > 0 ? (
             <BrainGraph
               nodes={brainNodes}
@@ -1089,6 +1129,36 @@ export function AlfredConsole() {
               audioLevel={realtime.audioLevel}
             />
           )}
+        </div>
+
+        {/* Omni command-line — type a command or ask Alfred (door #3) */}
+        <div className="relative z-10 w-full max-w-[440px] mt-5 px-4">
+          <div className="flex items-center gap-2 px-3 py-2.5 rounded-[11px]" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(62,176,255,0.28)" }}>
+            <span className="text-[10px] font-mono text-accent border border-[rgba(62,176,255,0.3)] rounded px-1 flex-shrink-0">⌘</span>
+            <input
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter" && input.trim()) send(); }}
+              placeholder="Command, or ask Alfred anything…"
+              className="flex-1 bg-transparent border-none outline-none text-[13px] text-text-1 placeholder:text-text-3 p-0 min-w-0"
+              style={{ boxShadow: "none" }}
+            />
+            <button onClick={toggleVoice} aria-label="Voice" className="flex-shrink-0 text-accent/70 hover:text-accent transition-colors"><Mic size={14} /></button>
+          </div>
+          <div className="flex gap-2 mt-2.5">
+            {[
+              { label: "What did I miss?", q: "what did I miss?" },
+              { label: "Focus today",      q: "what should I focus on today?" },
+              { label: "Sync views",       q: "sync my youtube views" },
+              { label: "Run review",       q: "run my weekly review" },
+            ].map(t => (
+              <button key={t.label} onClick={() => sendDirect(t.q)}
+                className="flex-1 text-center text-[10px] font-mono py-1.5 rounded-[8px] transition-all hover:text-accent"
+                style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.55)" }}>
+                {t.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Desktop nav pills — shown in brain mode (replaces the orbital nav nodes) */}

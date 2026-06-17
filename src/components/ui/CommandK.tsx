@@ -2,30 +2,15 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Search, Target, BookOpen, DollarSign, Video, Calendar, Settings,
-  Home, Sparkles, ArrowRight, MessageSquare, Film, CheckSquare, Brain, CreditCard, Package,
+  Search, Sparkles, ArrowRight, CheckSquare, Brain, CreditCard, Package,
 } from "lucide-react";
 import type { SearchResult } from "@/app/api/search/route";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/ToastProvider";
-import { getActiveDateString, getTomorrowDateString } from "@/lib/utils";
 import { config } from "@/config";
+import { buildCommands, type Command } from "@/lib/commands";
 
-type CommandKind = "navigate" | "input" | "textarea";
-
-interface Cmd {
-  id: string;
-  kind: CommandKind;
-  icon: React.ComponentType<{ size?: number; className?: string }>;
-  label: string;
-  hint?: string;
-  // For navigate
-  href?: string;
-  // For input/textarea
-  placeholder?: string;
-  submitLabel?: string;
-  onSubmit?: (value: string) => Promise<void>;
-}
+type Cmd = Command;
 
 const KIND_ICON: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
   todo:        CheckSquare,
@@ -49,113 +34,8 @@ export function CommandK() {
   const inputRef    = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Build command list
-  const COMMANDS: Cmd[] = [
-    {
-      id: "todo-today",
-      kind: "input",
-      icon: Target,
-      label: "Add todo for today",
-      placeholder: "What do you want to accomplish today?",
-      submitLabel: "Add",
-      onSubmit: async (text) => {
-        const r = await fetch("/api/todos", {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text, date: getActiveDateString() }),
-        });
-        const d = await r.json();
-        if (!r.ok || d.error) throw new Error(d.error ?? "Failed to add todo");
-        toast.success("Todo added", text);
-      },
-    },
-    {
-      id: "todo-tomorrow",
-      kind: "input",
-      icon: Target,
-      label: "Add todo for tomorrow",
-      placeholder: "What do you want to accomplish tomorrow?",
-      submitLabel: "Add",
-      onSubmit: async (text) => {
-        const r = await fetch("/api/todos", {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text, date: getTomorrowDateString() }),
-        });
-        const d = await r.json();
-        if (!r.ok || d.error) throw new Error(d.error ?? "Failed to add todo");
-        toast.success("Todo added for tomorrow", text);
-      },
-    },
-    {
-      id: "idea-inbox",
-      kind: "input",
-      icon: Sparkles,
-      label: "Quick capture idea",
-      hint: "Drops into Content → Inbox · promote later",
-      placeholder: "Spark of an idea, doesn't need to be finished…",
-      submitLabel: "Capture",
-      onSubmit: async (text) => {
-        const r = await fetch("/api/ideas", {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text, source: "cmdk" }),
-        });
-        const d = await r.json();
-        if (!r.ok || d.error) throw new Error(d.error ?? "Failed");
-        toast.success("Captured to inbox", text);
-      },
-    },
-    {
-      id: "video-idea-direct",
-      kind: "input",
-      icon: Film,
-      label: "New video → Pipeline (skip Inbox)",
-      hint: "Creates a Notion SV Videos entry as Idea",
-      placeholder: "Why I built this at 17…",
-      submitLabel: "Create",
-      onSubmit: async (text) => {
-        const r = await fetch("/api/notion/videos", {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ title: text }),
-        });
-        const d = await r.json();
-        if (!r.ok || d.error) throw new Error(d.error ?? "Failed");
-        toast.success("Video idea created in Pipeline", text);
-      },
-    },
-    {
-      id: "journal-jot",
-      kind: "textarea",
-      icon: MessageSquare,
-      label: "Quick journal note",
-      hint: "Appends to today's mindset notes",
-      placeholder: "What's on your mind…",
-      submitLabel: "Append",
-      onSubmit: async (text) => {
-        // Read existing log, append, write back
-        const cur = await fetch("/api/notion/log").then(r => r.json()).catch(() => ({ entry: null }));
-        const existing = cur.entry?.mindsetNotes ?? "";
-        const sep = existing ? "\n\n" : "";
-        const merged = `${existing}${sep}${text}`;
-        const next = { ...(cur.entry ?? {}), mindsetNotes: merged };
-        const r = await fetch("/api/notion/log", {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(next),
-        });
-        const d = await r.json();
-        if (!r.ok || d.error) throw new Error(d.error ?? "Failed to save journal");
-        toast.success("Saved to journal");
-      },
-    },
-    { id: "nav-timeline", kind: "navigate", icon: Calendar,   label: "Timeline",       href: "/d/timeline" },
-    { id: "nav-year",     kind: "navigate", icon: Calendar,   label: "Year stats",     href: "/d/year" },
-    { id: "nav-home",     kind: "navigate", icon: Home,       label: "Go to Home",     href: "/d" },
-    { id: "nav-goals",    kind: "navigate", icon: Target,     label: "Go to Goals",    href: "/d/goals" },
-    { id: "nav-log",      kind: "navigate", icon: BookOpen,   label: "Go to Daily Entry", href: "/d/entry" },
-    { id: "nav-history",  kind: "navigate", icon: BookOpen,   label: "Entry history",     href: "/d/entry/history" },
-    { id: "nav-finances", kind: "navigate", icon: DollarSign, label: "Go to Finances", href: "/d/finances" },
-    { id: "nav-content",  kind: "navigate", icon: Video,      label: "Go to Content",  href: "/d/content" },
-    { id: "nav-calendar", kind: "navigate", icon: Calendar,   label: "Go to Calendar", href: "/d/calendar" },
-    { id: "nav-settings", kind: "navigate", icon: Settings,   label: "Go to Settings", href: "/d/settings" },
-  ];
+  // One source of truth — shared with the bridge + Alfred.
+  const COMMANDS: Cmd[] = buildCommands({ toast });
 
   // Filter by query
   const filtered = !active
@@ -229,9 +109,17 @@ export function CommandK() {
       close();
       return;
     }
+    if (cmd.kind === "action" && cmd.run) {
+      setSubmitting(true);
+      cmd.run()
+        .then(() => close())
+        .catch((e: any) => toast.error("Command failed", e?.message ?? "Unknown error"))
+        .finally(() => setSubmitting(false));
+      return;
+    }
     setActive(cmd);
     setInput("");
-  }, [router, close]);
+  }, [router, close, toast]);
 
   const submit = useCallback(async () => {
     if (!active?.onSubmit) return;
